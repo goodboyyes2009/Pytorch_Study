@@ -20,7 +20,7 @@ print("daily_bikes.shape: {}, daily_bikes.stride: {}".format(daily_bikes.shape, 
 # daily_bikes.shape: torch.Size([730, 24, 17]), daily_bikes.stride: (408, 17, 1)
 
 # 最右边的维度是原始数据集中的列数。在中间维度中，你将时间分为24个连续小时的块。
-# 换句话说，你现在每天有C个通道的N个L小时的序列。为了获得你所需的NxCxL顺序，你需要转置张量：
+# 换句话说，你现在每天有C个通道的N个L小时的序列。为了获得你所需的 N x C x L 顺序，你需要转置张量：
 
 daily_bikes = daily_bikes.transpose(1, 2)
 print("daily_bikes.shape:{}, daily_bikes.stride:{}".format(daily_bikes.shape, daily_bikes.stride()))
