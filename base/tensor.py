@@ -6,6 +6,7 @@ import numpy as np
 points = torch.tensor([[1.0, 4.0], [2.0, 1.0], [3.0, 5.0]])
 print("points: {}".format(points))
 
+# 转置操作
 points_t = points.t()
 print("points_t:{}".format(points_t))
 
@@ -44,7 +45,7 @@ print("storage:{}".format(storage))
 # 步长是一个元组，表示当索引在每个维度上增加1时必须跳过的存储中元素的数量。
 # 用下标i和j访问二维张量等价于访问存储中的storage_offset + stride[0] * i + stride[1] * j元素。
 
-# 存储将points张量中的元素逐行保存着
+# 存储将points张量中的元素【逐行】保存着
 print("point stride:{}".format(points.stride()))
 
 some_tensor = torch.ones(2, 4, 5)
