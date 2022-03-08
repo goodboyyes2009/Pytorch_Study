@@ -10,15 +10,17 @@ class TextRNN(nn.Module):
     def __init__(self):
         super(TextRNN, self).__init__()
 
-        self.rnn = nn.RNN(input_size=n_classes, hidden_size=n_hidden)
+        self.rnn = nn.RNN(input_size=vocab_size, hidden_size=n_hidden)
 
-        self.W = nn.Linear(in_features=n_hidden, out_features=n_classes, bias=False)
+        self.W = nn.Linear(in_features=n_hidden, out_features=vocab_size, bias=False)
 
-        self.b = nn.Parameter(torch.ones([n_classes]))
+        self.b = nn.Parameter(torch.ones([vocab_size]))
 
-    def forward(self, hidden, X):
-        X = X.transpose(0, 1)  # X :[n_step, batch_size, n_classes]
-        outputs, hidden = self.rnn(X, hidden)
+    def forward(self, input_x, hidden):
+
+        input_x = input_x.transpose(0, 1)  # X :[n_step, batch_size, n_classes]
+
+        outputs, hidden = self.rnn(input_x, hidden)
         # output: [n_step, batch_size, num_directions(=1) * n_hidden]
         # hidden: [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
         outputs = outputs[-1]  # [batch_size, num_directions(=1) * n_hidden]
@@ -26,7 +28,7 @@ class TextRNN(nn.Module):
         return model
 
 
-def make_bacth():
+def make_batch():
     input_batch = []
     target_batch = []
 
@@ -35,8 +37,9 @@ def make_bacth():
         input = [word_dict[n] for n in word[:-1]]  # create (1, n-1) as input
         target = word_dict[word[-1]]  # create (n) as target, We usually call this 'casual language model'
 
-        # 构造输入的one-hot
-        input_batch.append(np.eye(n_classes)[input])
+        # 构造输入的one-hot, input_batch: [word_num ,vocab_size]
+
+        input_batch.append(np.eye(vocab_size)[input])
         target_batch.append(target)
 
     return input_batch, target_batch
@@ -45,10 +48,16 @@ def make_bacth():
 def training_loop(n_epochs, optimizer, model, loss_fn, input_batch, target_batch):
     for epoch in range(1, n_epochs + 1):
 
-        hidden = torch.zeros(1, batch_size, n_hidden)
-        output = model(hidden, input_batch)
-        # output : [batch_size, n_class], target_batch : [batch_size] (LongTensor, not one-hot)
+        h_0 = torch.zeros(1, batch_size, n_hidden)
+        # h_0 : [num_layers * num_directions, batch, hidden_size],
+        # tensor containing the initial hidden state for each element in the batch. Defaults to zero if not provided.
+        # If the RNN is bidirectional, num_directions should be 2, else it should be 1.
 
+        # input_batch : [batch_size, n_step, n_class]
+        output = model(input_batch, h_0)
+        # output : [batch_size, n_class],
+
+        # target_batch : [batch_size] (LongTensor, not one-hot)
         loss = loss_fn(output, target_batch)
 
         if (epoch + 1) % 1000 == 0:
@@ -60,7 +69,7 @@ def training_loop(n_epochs, optimizer, model, loss_fn, input_batch, target_batch
 
 
 if __name__ == "__main__":
-    n_step = 2  # number of cells(= number of step)
+    # n_step = 2  # number of cells(= number of step)
     n_hidden = 5  # number of hidden units in one cell
 
     sentences = ["i like dog", "i love coffee", "i hate milk"]
@@ -70,7 +79,8 @@ if __name__ == "__main__":
     word_dict = {w: i for i, w in enumerate(word_list)}
     number_dict = {i: w for i, w in enumerate(word_list)}
 
-    n_classes = len(word_list)
+    vocab_size = len(word_list)
+
     batch_size = len(sentences)
 
     model = TextRNN()
@@ -79,7 +89,7 @@ if __name__ == "__main__":
 
     n_epochs = 5000
 
-    input_batch, target_batch = make_bacth()
+    input_batch, target_batch = make_batch()
 
     input_batch = torch.FloatTensor(input_batch)
     target_batch = torch.LongTensor(target_batch)
@@ -91,4 +101,4 @@ if __name__ == "__main__":
         print("name:{}, param:{}".format(name, param.shape))
 
 
-    # training_loop(n_epochs, optimizer, model, loss_fn, input_batch, target_batch)
+    training_loop(n_epochs, optimizer, model, loss_fn, input_batch, target_batch)
