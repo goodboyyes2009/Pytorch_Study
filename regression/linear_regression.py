@@ -13,7 +13,7 @@ def generate_fake_data(batch_size=8):
     :param batch_size:
     :return:
     '''
-    x = t.rand(batch_size, 1) * 30
+    x = t.rand(batch_size, 1) * 20
     y = x * 2 + (1 + t.randn(batch_size, 1)) * 3
     return x, y
 
@@ -45,9 +45,39 @@ def train():
         w.sub_(lr * dw)
         b.sub_(lr * db)
 
-        print("w:{}, b:{}, loss:{}".format(w,b, loss))
+        print("w:{}, b:{}, loss:{}".format(w, b, loss))
 
     # print
+    print("final w:{}, b:{}".format(w.squeeze(), b.squeeze()))
+
+
+def train_use_autograd():
+    # 随机初始化参数
+    w = t.rand(1, 1, requires_grad=True)
+    b = t.zeros(1, 1, requires_grad=True)
+
+    lr = 0.001
+
+    for ii in range(8000):
+        x, y = generate_fake_data()
+
+        # 计算loss
+        y_pred = x.mm(w) + b.expand_as(y)
+        loss = 0.5 * (y_pred - y) ** 2
+        loss = loss.sum()
+
+        # backward
+        loss.backward()
+
+        # update parameters
+        w.data.sub_(lr * w.grad.data)
+        b.data.sub_(lr * b.grad.data)
+
+        # 梯度清零
+        w.grad.zero_()
+        b.grad.zero_()
+
+        print("w:{}, b:{}, loss:{}".format(w, b, loss))
     print("final w:{}, b:{}".format(w.squeeze(), b.squeeze()))
 
 if __name__ == "__main__":
@@ -57,3 +87,4 @@ if __name__ == "__main__":
     plt.scatter(x.squeeze().numpy(), y.squeeze().numpy())
     plt.show()
     train()
+    # train_use_autograd()
