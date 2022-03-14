@@ -165,13 +165,14 @@ def test_lstm():
 
 
 def test_embedding():
-    embedding = nn.Embedding(num_embeddings=4, embedding_dim=5, padding_idx=0)
+    embedding = nn.Embedding(num_embeddings=10, embedding_dim=3, padding_idx=0)
     # 可以用预训练好的词向量初始化embedding
-    embedding.weight.data = torch.arange(0, 20).view(4, 5)
+    embedding.weight.data = torch.arange(0, 30).view(10, 3)
 
-    input_x = torch.arange(3, 0, -1).long()
+    input_x = torch.arange(7, 0, -1).long()
     output = embedding(input_x)
     print("output: {}".format(output))
+
 
 if __name__ == "__main__":
     # test_Perceptron()
