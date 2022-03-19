@@ -174,10 +174,21 @@ def test_embedding():
     print("output: {}".format(output))
 
 
+def conv1_test():
+    conv1 = nn.Conv1d(in_channels=128, out_channels=100, kernel_size=3, stride=1, padding=3)
+    # N, C, L = batch_size, in_channel, sequence_len
+    input_x = torch.randn(100, 128, 63)
+    # 计算输出的特征大小: (L_in - kernel_size +  2 * padding)/ stride + 1
+    #
+    conv1_out = conv1(input=input_x)
+    print("conv1_out shape: {}".format(conv1_out.shape))
+
+
 if __name__ == "__main__":
     # test_Perceptron()
     # test_batch_norm()
     # test_dropout()
-    test_RNN()
-    test_lstm()
-    test_embedding()
+    # test_RNN()
+    # test_lstm()
+    # test_embedding()
+    conv1_test()
