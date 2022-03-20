@@ -105,6 +105,7 @@ if __name__ == "__main__":
     assert tokenized_texts == [['i', 'love', 'you'], ['i', 'like', 'cat'], ['i', 'hate', 'dog'],
                                ['you', 'just', 'a', 'boy']]
     assert index2word[word2index["i"]] == "i"
-
+    encode_texts = encode(tokenized_texts, word2index, max_sequence_length)
+    print("encode_texts: {}".format(encode_texts))
     decode_result = decode_single([1, 2, 3, 2, 0], index2word)
     print(decode_result)
