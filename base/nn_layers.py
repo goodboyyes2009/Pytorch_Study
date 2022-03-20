@@ -186,12 +186,12 @@ def test_embedding():
 def conv1_test():
     conv1 = nn.Conv1d(in_channels=128, out_channels=100, kernel_size=3, stride=1, padding=3)
     # N, C, L = batch_size, in_channel, sequence_len
-    input_x = torch.randn(100, 128, 63)
+    input_x = torch.randn(29, 128, 63)
     # 计算输出的特征大小: (L_in - kernel_size +  2 * padding)/ stride + 1
     #
     conv1_out = conv1(input=input_x)
     print("conv1_out shape: {}".format(conv1_out.shape))
-    # [100, 100, 67]
+    # [29, 100, 67]
 
 
 if __name__ == "__main__":
