@@ -176,8 +176,11 @@ def test_embedding():
     embedding = nn.Embedding(5, 3)
     input_ids = torch.LongTensor([[1, 2, 3, 4], [0, 1, 2, 4]])
     print("input_ids shape:{}".format(input_ids.shape))
+    # input_ids shape: [2,4]
+
     out = embedding(torch.LongTensor(input_ids))
-    print("out:{}\nout shape:{}".format(out, out.shape))
+    print("out shape:{}".format(out.shape))
+    # out shape: [2, 4, 3]
 
 
 def conv1_test():
@@ -188,6 +191,7 @@ def conv1_test():
     #
     conv1_out = conv1(input=input_x)
     print("conv1_out shape: {}".format(conv1_out.shape))
+    # [100, 100, 67]
 
 
 if __name__ == "__main__":
