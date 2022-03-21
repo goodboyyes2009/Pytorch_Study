@@ -193,6 +193,16 @@ def conv1_test():
     print("conv1_out shape: {}".format(conv1_out.shape))
     # [29, 100, 67]
 
+def test_embeddingBag():
+    embedding = nn.EmbeddingBag(num_embeddings=10, embedding_dim=3)
+    # 三个batch, 分别包含2个,3个,3个indices
+    input_x = torch.LongTensor([1,2,4,5,4,3,2,9])
+    offsets = torch.LongTensor([0,2,5])
+    embedding_mean = embedding(input_x, offsets)
+    print("embedding_mean: {}".format(embedding_mean))
+    # embedding_mean: tensor([[-0.0401, -0.1045, -0.3961],
+    #         [ 0.3339,  2.7423,  0.7119],
+    #         [-0.9661,  0.0946,  0.2269]], grad_fn=<EmbeddingBagBackward>)
 
 if __name__ == "__main__":
     # test_Perceptron()
