@@ -4,6 +4,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 from common.data_hepler import *
 from common.tokenization import *
+import numpy as np
 
 
 class TextCNN(nn.Module):
@@ -122,11 +123,59 @@ tokenized_texts, word2index, index2word, max_sequence_len = tokenize(sentences, 
 
 text_cnn_model, optimizer, loss_fn = initilize_model(vocab_size=len(word2index))
 
-label_dict = {
-    1: [1, 0],
-    0: [0, 1]
-}
+# train_loop(text_cnn_model, optimizer, loss_fn, x_train=encode(tokenized_texts, word2index, max_sequence_len),
+#            y_train=labels)
 
-y_train = [label_dict[idx] for idx in labels]
-train_loop(text_cnn_model, optimizer, loss_fn, x_train=encode(tokenized_texts, word2index, max_sequence_len),
-           y_train=labels)
+
+inputs = encode(tokenized_texts, word2index, max_sequence_len)
+device = get_device()
+
+# 将array变成tensor
+labels = torch.tensor(labels, device=device, dtype=torch.long)
+inputs = torch.tensor(inputs, device=device, dtype=torch.long)
+
+for epoch in range(5001):
+
+    # 前向传播进行模型预测
+    predict = text_cnn_model(inputs)
+
+    # 在反向传播前将梯度清零
+    optimizer.zero_grad()
+
+    # 计算loss
+    loss = loss_fn(predict, labels)
+
+    # 通过loss进行反向传播
+    loss.backward()
+
+    # 更新参数
+    optimizer.step()
+
+    if epoch % 100 == 0:
+        print("epoch {}, train loss: {}".format(epoch, loss))
+
+# 模型预测
+test_text = "sorry hate you"
+
+
+def encode_text(text: str):
+    encode_text_input_ids = []
+    for x in text.strip().split():
+        input_id = word2index[x] if x in word2index else word2index['<unk>']
+        encode_text_input_ids.append(input_id)
+    return encode_text_input_ids
+
+encode_test_text = encode_text(test_text)
+encode_test_text += [0] * (max_sequence_len - len(encode_test_text))
+
+# 转换成tensor
+encode_test_text = torch.tensor(encode_test_text, device=device, dtype=torch.long)
+
+# predict
+pred =  text_cnn_model(encode_test_text.unsqueeze_(dim=0)).data.max(1, keepdim=True)[1]
+
+print("pred: {}".format(pred))
+if pred[0][0] == 0:
+    print("is Bad mean...")
+else:
+    print("is God mean...")
