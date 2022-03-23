@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import torch
 import math
+import numpy as np
 
 
 # torch.utils.data.IterableDataset 使用, 参考官网文档: https://pytorch.org/docs/1.2.0/data.html#torch.utils.data.IterableDataset
@@ -220,4 +221,107 @@ print("batch_sampler: {}".format(batch_sampler_drop_last))
 # 丢弃最后一批不足batch_size数量的数据
 batch_sampler = list(BatchSampler(SequentialSampler(range(10)), batch_size=3, drop_last=True))
 print("batch_sampler_drop_last: {}".format(batch_sampler))
+
 # batch_sampler_drop_last: [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+import os
+
+
+class ChineseNewsData(torch.utils.data.Dataset):
+    """Chinese News dataset."""
+
+    train_file_name = "train.tsv"
+    test_file_name = "test.tsv"
+
+    def __init__(self, hasHeader=False, split_char=",", data_root_path=None, train=True, transforms=None):
+        super().__init__()
+        self.hasHeader = hasHeader
+        self.data_root_path = data_root_path
+        self.train = train
+        self.transforms = transforms
+        self.split_char = split_char
+
+        self.data = []
+        self.targets = []
+
+        file_name = self.train_file_name if train else self.test_file_name
+
+        with open(os.path.join(self.data_root_path, file_name), 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    if self.hasHeader:
+                        continue
+                    splits = line.split(self.split_char)
+                    if len(splits) < 2:
+                        continue
+                    if len(splits[0].strip()) == 0:
+                        continue
+                    self.data.append(splits[0].strip())
+                    target = splits[1].strip().replace('\n', '')
+                    self.targets.append(int(target))
+                except Exception as e:
+                    print("解析{}数据发生异常，异常信息为:{}".format(file_name, e))
+
+    def __len__(self):
+        """ 返回整个数据的长度 """
+        return len(self.data)
+
+    def __getitem__(self, index):
+        """
+        :param index: 数据在list中的下标
+        :return: a tuple, (text, label)
+        """
+        text, label = self.data[index], self.targets[index]
+        if self.transforms is not None:
+            text = self.transforms(text)
+        if self.transforms is not None:
+            label = self.transforms(label)
+        return text, label
+
+# 定义一些transforms
+
+# tokenize
+class Tokenize(object):
+    """
+    对文本句子进行分词，然后进行onehot编码
+    """
+
+    def __call__(self, sample):
+        text = sample[0]
+        # TODO:
+        #  1.将对每一个句子进行分词， 可以使用jieba分词
+        #  2.去停用词
+        #  3.进行onehot编码， 这里需要全局的word2index字典映射
+
+        # sample[0] = text
+        return sample
+
+
+class ToTensor(object):
+    """
+    将数组转换成tensor
+    """
+    def __init__(self, device):
+        self._device = device
+
+    def __call__(self, sample):
+        input_ids, label = sample[0], sample[1]
+        input_ids = torch.from_numpy(np.array(input_ids)).long()
+        input_ids.to(device=self._device)
+        label = torch.LongTensor(label, device=self._device)
+        return input_ids, label
+
+from torchvision import transforms, utils
+
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device("cpu")
+
+newdata = ChineseNewsData(split_char='\t', data_root_path='/home/hj/dataset/news_data/news_zh',
+                          transforms=transforms.Compose([ToTensor(device=device)]))
+for i in range(len(newdata)):
+    sample = newdata[i]
+    text, label = sample[0], sample[1]
+    # 打印前4条
+    if i > 3:
+        break
+    print("text:{}, label:{}".format(text, label))
+
+# 参考: https://pytorch.org/tutorials/beginner/data_loading_tutorial.html?highlight=dataloader
