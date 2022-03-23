@@ -14,13 +14,13 @@ class TextCNN(nn.Module):
         super().__init__()
         self.vocab_size = vocab_size
         self.filter_sizes = filter_sizes
-        self.filter_nums = num_filters
+        self.num_filters = num_filters
         self.embedding_dim = embedding_dim
         self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
-        self.conv_list = nn.ModuleList(
-            [nn.Conv1d(in_channels=self.embedding_dim, out_channels=self.filter_nums[i],
-                       kernel_size=self.filter_sizes[i], bias=True) for i in range(len(self.filter_nums))])
-        self.fc = nn.Linear(in_features=sum(self.filter_nums), out_features=num_classes)
+        self.conv1d_list = nn.ModuleList(
+            [nn.Conv1d(in_channels=self.embedding_dim, out_channels=self.num_filters[i],
+                       kernel_size=self.filter_sizes[i], bias=True) for i in range(len(self.num_filters))])
+        self.fc = nn.Linear(in_features=sum(self.num_filters), out_features=num_classes)
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, input_ids):
@@ -33,14 +33,14 @@ class TextCNN(nn.Module):
         # 由于Conv1d的输入shape为[N(句子数量), C_in(Conv1d的in_channels参数), L_in(句子长度)]即[batch_size, embedding_dim, sequence_len]
         # embedding_out shape=[batch_size, embedding_dim, sequence_len]
         embedding_out = embedding_out.permute(0, 2, 1)
-        conv1_result_list = [conv1(embedding_out) for conv1 in self.conv_list]
-        # cov1d out shape: [batch_size, filter_nums[i], features]
-        nonlinear_result_list = [F.relu(conv_result, inplace=True) for conv_result in conv1_result_list]
-        # max_pool out shape :[batch_size, filter_nums[i], 1]
+        conv1d_result_list = [conv(embedding_out) for conv in self.conv1d_list]
+        # cov1d out shape: [batch_size, num_filters[i], features]
+        nonlinear_result_list = [F.relu(conv_result, inplace=True) for conv_result in conv1d_result_list]
+        # max_pool out shape :[batch_size, num_filters[i], 1]
         max_pooled_list = [F.max_pool1d(nonlinear_result, kernel_size=nonlinear_result.shape[2]) for nonlinear_result in
                            nonlinear_result_list]
         # Concatenate x_pool_list to feed the fully connected layer.
-        # out shape: [batch_size, sums[filter_nums[i]]]
+        # out shape: [batch_size, sums[num_filters[i]]]
         x_fc = torch.cat([pool_result.squeeze(dim=2) for pool_result in max_pooled_list], dim=1)
 
         # Compute logits. Output shape: (b, n_classes)
@@ -116,7 +116,7 @@ def evaluate():
 
 
 # 3 words sentences (=sequence_length is 3)
-sentences = ["i love you", "he loves me", "she likes baseball", "i hate you", "sorry for that", "this is awful"]
+sentences = ["i love you", "he loves me too", "she likes baseball", "i hate you", "sorry for that", "this is awful"]
 labels = [1, 1, 1, 0, 0, 0]  # 1 is good, 0 is not good.
 
 tokenized_texts, word2index, index2word, max_sequence_len = tokenize(sentences, lambda x: x.split())
@@ -128,6 +128,7 @@ text_cnn_model, optimizer, loss_fn = initilize_model(vocab_size=len(word2index))
 
 
 inputs = encode(tokenized_texts, word2index, max_sequence_len)
+print("max_sequence_len: {}".format(max_sequence_len))
 device = get_device()
 
 # 将array变成tensor
@@ -155,7 +156,7 @@ for epoch in range(5001):
         print("epoch {}, train loss: {}".format(epoch, loss))
 
 # 模型预测
-test_text = "sorry hate you"
+test_text = "sorry i hate you"
 
 
 def encode_text(text: str):
