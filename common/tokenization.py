@@ -2,6 +2,8 @@
 import numpy as np
 from typing import List, Dict
 
+# TODO: 1 .将train.tsv 和dev.tsv中的语料全部拿来训练建立词表， 构建word2index 和index2word字典映射，同时找出最大的句子长度
+#  2.定义一个tokenize方法，支持传入一句话变成input_id; 支持传入多句话，变成input_ids列表
 
 def tokenize(texts, token_fn):
     """
