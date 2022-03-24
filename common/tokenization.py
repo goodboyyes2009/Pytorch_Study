@@ -2,8 +2,86 @@
 import numpy as np
 from typing import List, Dict
 
+
 # TODO: 1 .将train.tsv 和dev.tsv中的语料全部拿来训练建立词表， 构建word2index 和index2word字典映射，同时找出最大的句子长度
 #  2.定义一个tokenize方法，支持传入一句话变成input_id; 支持传入多句话，变成input_ids列表
+
+class Vocabulary(object):
+
+    def __init__(self, train_texts: List, dev_texts: List, stop_words: list, token_fn):
+        """
+
+        :param train_texts: 训练数据的文本列表
+        :param dev_texts: 测试数据的文本列表
+        :param token_fn: 分词函数
+        """
+        self._train_texts = train_texts
+        self._dev_texts = dev_texts
+        self._token_fn = token_fn
+        self._stop_words = stop_words
+        self.max_sentence_length = 0
+        self.word2index = {}
+        self.index2word = {}
+
+        # 加入词汇表中没有未登录词 Out-of-vocabulary(OOV)的代替符号<unk>和用于padding的符号<pad>
+        self.word2index['<pad>'] = 0
+        self.word2index['unk'] = 1
+        self.index2word[0] = "<pad>"
+        self.index2word[1] = "<unk>"
+
+        self._create_vocab()
+        self.vocab_size = len(self.word2index)
+
+    def _create_vocab(self):
+
+        # 如果文件存则直接加载词表文件，
+
+        self._process_data(self._train_texts, len(self.word2index))
+        self._process_data(self._dev_texts, len(self.word2index))
+
+    def _process_data(self, texts, init_idx):
+        idx = init_idx
+        for text in texts:
+            tokens = [word for word in self._token_fn(text) if word not in self._stop_words]
+            # 向word2index中添加单词
+            for token in tokens:
+                if token not in word2index:
+                    self.word2index[token] = idx
+                    self.index2word[idx] = token
+                    idx += 1
+            self.max_sentence_length = max(self.max_sentence_length, len(tokens))
+
+    def encode(self, text: str) -> np.array:
+        """ 将一个句子编码为onehot向量 """
+        input_id = []
+        tokens = [word for word in self._token_fn(text) if word not in self._stop_words]
+        # padding
+        while len(tokens) < self.max_sentence_length:
+            tokens.append("<pad>")
+        for token in tokens:
+            # 处理oov的情况
+            token_id = self.word2index[token] if token in self.word2index else self.word2index['<unk>']
+            input_id.append(token_id)
+        return np.array(input_id)
+
+    def decode(self, input_id: np.array) -> np.array:
+        """ 将onehot向量input_id解码为一个分词列表 """
+        tokenized_text = []
+        for idx in input_id:
+            if idx == 0:
+                break
+            token = self.index2word[idx]
+            tokenized_text.append(token)
+        return np.array(tokenized_text)
+
+    def encodes(self, texts: np.array) -> np.array:
+        """ 将多个句子的编码为多个onehot向量 """
+        return np.array([self.encode(text) for text in texts])
+
+    def decodes(self, input_ids: np.array) -> np.array:
+        """ 将多个onehot向量编码为多个句子的分词列表 """
+        return np.array([self.decode(input_id) for input_id in input_ids])
+
 
 def tokenize(texts, token_fn):
     """
@@ -97,8 +175,6 @@ def decode(input_ids: List[List[int]], index2word: Dict) -> np.array:
 
 def load_pretrained_tencent_word_embedding():
     pass
-
-
 
 
 if __name__ == "__main__":
