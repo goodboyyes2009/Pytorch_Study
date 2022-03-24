@@ -2,6 +2,7 @@
 import torch
 import math
 import numpy as np
+from common.tokenization import *
 
 
 # torch.utils.data.IterableDataset 使用, 参考官网文档: https://pytorch.org/docs/1.2.0/data.html#torch.utils.data.IterableDataset
@@ -272,10 +273,9 @@ class ChineseNewsData(torch.utils.data.Dataset):
         """
         text, label = self.data[index], self.targets[index]
         if self.transforms is not None:
-            text = self.transforms(text)
-        if self.transforms is not None:
-            label = self.transforms(label)
+            text, label = self.transforms(text, label)
         return text, label
+
 
 # 定义一些transforms
 
@@ -284,40 +284,56 @@ class Tokenize(object):
     """
     对文本句子进行分词，然后进行onehot编码
     """
+    stop_words = get_stop_words()
+    vocabulary = Vocabulary(stop_words=stop_words, token_fn=token_function)
 
-    def __call__(self, sample):
-        text = sample[0]
+    def __call__(self, text, label):
+        print("tokenize text: {}, label:{}".format(text, label))
         # TODO:
         #  1.将对每一个句子进行分词， 可以使用jieba分词
         #  2.去停用词
         #  3.进行onehot编码， 这里需要全局的word2index字典映射
-
-        # sample[0] = text
-        return sample
+        input_id = self.vocabulary.encode(text)
+        return input_id, label
 
 
 class ToTensor(object):
     """
     将数组转换成tensor
     """
+
     def __init__(self, device):
         self._device = device
 
-    def __call__(self, sample):
-        input_ids, label = sample[0], sample[1]
+    def __call__(self, input_ids, label):
+        print("to tensor text: {}".format(text))
         input_ids = torch.from_numpy(np.array(input_ids)).long()
         input_ids.to(device=self._device)
-        label = torch.LongTensor(label, device=self._device)
+        label = torch.tensor(int(label), device=self._device).long()
         return input_ids, label
+
+
+data_root_path = '/home/hj/dataset/news_data/news_zh'
+
+newdata = ChineseNewsData(split_char='\t', data_root_path=data_root_path,
+                          transforms=None)
+for i in range(len(newdata)):
+    sample = newdata[i]
+    text, label = sample[0], sample[1]
+    # 打印前4条
+    if i > 3:
+        break
+    print("text:{}, label:{}".format(text, label))
 
 from torchvision import transforms, utils
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device("cpu")
 
-newdata = ChineseNewsData(split_char='\t', data_root_path='/home/hj/dataset/news_data/news_zh',
-                          transforms=transforms.Compose([ToTensor(device=device)]))
+newdata = ChineseNewsData(split_char='\t', data_root_path=data_root_path,
+                          transforms=transforms.Compose([Tokenize(), ToTensor(device=device)]))
 for i in range(len(newdata)):
     sample = newdata[i]
+    print("iter sample: {}".format(sample))
     text, label = sample[0], sample[1]
     # 打印前4条
     if i > 3:

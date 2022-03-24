@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from typing import List, Dict
+from typing import List, Dict, Optional
+import os
+import pickle
+import jieba
 
 
 # TODO: 1 .将train.tsv 和dev.tsv中的语料全部拿来训练建立词表， 构建word2index 和index2word字典映射，同时找出最大的句子长度
@@ -8,20 +11,20 @@ from typing import List, Dict
 
 class Vocabulary(object):
 
-    def __init__(self, train_texts: List, dev_texts: List, stop_words: list, token_fn):
+    def __init__(self, token_fn, stop_words, corpus_texts=None):
         """
 
-        :param train_texts: 训练数据的文本列表
-        :param dev_texts: 测试数据的文本列表
+        :param corpus_texts: 训练词表的预料
+        :param stop_words: 停用词列表
         :param token_fn: 分词函数
         """
-        self._train_texts = train_texts
-        self._dev_texts = dev_texts
+        self._corpus_texts = corpus_texts
         self._token_fn = token_fn
         self._stop_words = stop_words
         self.max_sentence_length = 0
         self.word2index = {}
         self.index2word = {}
+        self.save_path = '../data/vocab.pkl'
 
         # 加入词汇表中没有未登录词 Out-of-vocabulary(OOV)的代替符号<unk>和用于padding的符号<pad>
         self.word2index['<pad>'] = 0
@@ -32,12 +35,37 @@ class Vocabulary(object):
         self._create_vocab()
         self.vocab_size = len(self.word2index)
 
+        if not os.path.exists(self.save_path):
+            self._save_vocab()
+
     def _create_vocab(self):
+        # 如果文件存则直接加载词表文件，格式为
+        # {"vocab_size": 词表长度, "word2index":{单词到index的映射}, "index2word":{索引到单词的映射}}
+        print("建立词表......")
+        if os.path.isfile(self.save_path) and os.path.getsize(self.save_path) > 0:
+            try:
+                fr = open(self.save_path, 'rb')
+                unpickler = pickle.Unpickler(fr)
+                vocab_info = unpickler.load()
+                self.max_sentence_length = vocab_info['max_sentence_length']
+                self.word2index = vocab_info['word2index']
+                self.index2word = vocab_info['index2word']
+                self.vocab_size = len(self.word2index)
+                fr.close()
+            except Exception as e:
+                print("加载词表发生异常, {}".format(e))
+        else:
+            self._process_data(self._corpus_texts, len(self.word2index))
 
-        # 如果文件存则直接加载词表文件，
-
-        self._process_data(self._train_texts, len(self.word2index))
-        self._process_data(self._dev_texts, len(self.word2index))
+    def _save_vocab(self):
+        try:
+            fw = open('../data/vocab.pkl', 'wb')
+            vocab_info = {"vocab_size": self.vocab_size, "word2index": self.word2index, "index2word": self.index2word,
+                          "max_sentence_length": self.max_sentence_length}
+            pickle.dump(vocab_info, fw)
+            fw.close()
+        except Exception as e:
+            print("保存词表发生异常, {}".format(e))
 
     def _process_data(self, texts, init_idx):
         idx = init_idx
@@ -173,6 +201,26 @@ def decode(input_ids: List[List[int]], index2word: Dict) -> np.array:
     return np.array([decode_single(input_id, index2word) for input_id in input_ids])
 
 
+def token_function(text):
+    if not text and len(text.strip()) == 0:
+        return []
+    try:
+        tokens = jieba.cut(text, cut_all=False)
+        return tokens
+    except Exception as e:
+        print("处理句子[{}]分词失败, 异常信息{}".format(text, e))
+        return []
+
+
+def get_stop_words():
+    try:
+        stop_words = [word.strip() for word in open('../data/stop_words', 'r', encoding='utf-8')]
+        return stop_words
+    except Exception as e:
+        print("获取停用词失败,{}".format(e))
+        return []
+
+
 def load_pretrained_tencent_word_embedding():
     pass
 
@@ -187,3 +235,18 @@ if __name__ == "__main__":
     print("encode_texts: {}".format(encode_texts))
     decode_result = decode_single([1, 2, 3, 2, 0], index2word)
     print(decode_result)
+
+    data_root_path = '/home/hj/dataset/news_data/news_zh'
+
+    data_file_list = [
+        os.path.join(data_root_path, 'dev.tsv'),
+        os.path.join(data_root_path, 'train.tsv'),
+        os.path.join(data_root_path, 'test.tsv'),
+    ]
+
+    texts = [line.split('\t')[0].strip() for f in data_file_list for line in open(f, 'r', encoding='utf-8')]
+
+    vocabulary = Vocabulary(corpus_texts=texts, stop_words=get_stop_words(), token_fn=token_function)
+    print("词表长度:{}".format(vocabulary.vocab_size))
+    vocabulary = Vocabulary(stop_words=get_stop_words(), token_fn=token_function)
+    print("max_sentence_length:{}".format(vocabulary.max_sentence_length))
