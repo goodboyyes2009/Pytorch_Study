@@ -173,11 +173,17 @@ encode_test_text += [0] * (max_sequence_len - len(encode_test_text))
 encode_test_text = torch.tensor(encode_test_text, device=device, dtype=torch.long, requires_grad=False)
 encode_test_text = encode_test_text.squeeze_(dim=0)
 
-# [[1]], [[1]]
+# encode_test_text shape: [1, 5]
 
-cat_encode_test_text = torch.cat((encode_test_text, encode_test_text), dim=0).view(2, -1)
+# 使用torch.stack实现 tensor 的append操作; stack先扩展维度，再进行cat操作
+stack_encode_text = torch.stack((encode_test_text, encode_test_text), dim=0)
+# print("stack_encode_text :{}".format(stack_encode_text))
 
-print("cat_encode_test_text: {}".format(cat_encode_test_text))
+# 使用cat进行实现 tensor的append方法
+
+# cat_encode_test_text = torch.cat((encode_test_text, encode_test_text), dim=0).view(2, -1)
+#
+# print("cat_encode_test_text: {}".format(cat_encode_test_text))
 
 # 进行tensor append的一种尝试方法: 先使用detach方法获取data, 然后从GPU拷贝至CPU, tensor变成numpy, 再使用numpy.append操作，最后拷贝回GPU
 
@@ -195,7 +201,7 @@ print("cat_encode_test_text: {}".format(cat_encode_test_text))
 #
 # encode_test_text_tensor = torch.from_numpy(encode_test_text_detach_cpu_numpy).to(device=device)
 # predict
-pred =  text_cnn_model(cat_encode_test_text).data.max(1, keepdim=True)[1]
+pred =  text_cnn_model(stack_encode_text).data.max(1, keepdim=True)[1]
 
 print("pred: {}".format(pred))
 if pred[0][0] == 0:
