@@ -114,18 +114,67 @@ points_gpu = 2 * points.to(device='cuda')  # 在GPU上做乘法
 points_cpu = points_gpu.to(device='cpu', dtype=torch.int32)
 print("points_cpu:{}".format(points_cpu))
 
-
 # 练习
-nparray = np.empty((3,3))
+nparray = np.empty((3, 3))
 a = torch.from_numpy(nparray)
 print("a:{}".format(a))
 
-b = a.view(3,3)
-print("b[1,1]:{}".format(b[1,1]))
+b = a.view(3, 3)
+print("b[1,1]:{}".format(b[1, 1]))
 
 c = b[1:, 1:]
-#storage_offset: 存储偏移是存储中与张量中的第一个元素相对应的索引
+# storage_offset: 存储偏移是存储中与张量中的第一个元素相对应的索引
 print("c:{}, stride:{}, offerset:{}".format(c, c.stride(), c.storage_offset()))
 
 # 直接修改输入而不是创建新的输出并返回
 print("a:{},\n b.sin_():{}".format(a, b.sin_()))
+
+a = torch.tensor([[1, 2], [3, 4]])
+b = torch.tensor([[5, 6], [7, 8]])
+
+c = torch.cat((a, b), dim=1)
+print("c: {}".format(c))
+# c: tensor([[1, 2, 5, 6],
+#        [3, 4, 7, 8]])
+
+c = torch.cat((a, b), dim=0)
+print("c: {}".format(c))
+# c: tensor([[1, 2],
+#         [3, 4],
+#         [5, 6],
+#         [7, 8]])
+
+print("c.shape:{}".format(c.shape))
+# c.shape:torch.Size([4, 2])
+import copy
+c_copy = copy.deepcopy(c)
+c = torch.stack((c, c), dim=0)
+print("c: {}".format(c))
+print("c.shape:{}".format(c.shape))
+# c: tensor([[[1, 2],
+#          [3, 4],
+#          [5, 6],
+#          [7, 8]],
+#
+#         [[1, 2],
+#          [3, 4],
+#          [5, 6],
+#          [7, 8]]])
+# c.shape:torch.Size([2, 4, 2])
+
+c = torch.stack((c_copy, c_copy), dim=1)
+print("c: {}".format(c))
+print("c.shape:{}".format(c.shape))
+
+# c: tensor([[[1, 2],
+#          [1, 2]],
+#
+#         [[3, 4],
+#          [3, 4]],
+#
+#         [[5, 6],
+#          [5, 6]],
+#
+#         [[7, 8],
+#          [7, 8]]])
+# c.shape:torch.Size([4, 2, 2])
