@@ -5,10 +5,6 @@ import os
 import pickle
 import jieba
 
-
-# TODO: 1 .将train.tsv 和dev.tsv中的语料全部拿来训练建立词表， 构建word2index 和index2word字典映射，同时找出最大的句子长度
-#  2.定义一个tokenize方法，支持传入一句话变成input_id; 支持传入多句话，变成input_ids列表
-
 class Vocabulary(object):
 
     def __init__(self, token_fn, stop_words, corpus_texts=None):
@@ -246,7 +242,9 @@ if __name__ == "__main__":
 
     texts = [line.split('\t')[0].strip() for f in data_file_list for line in open(f, 'r', encoding='utf-8')]
 
-    vocabulary = Vocabulary(corpus_texts=texts, stop_words=get_stop_words(), token_fn=token_function)
+    stop_words = get_stop_words()
+
+    vocabulary = Vocabulary(corpus_texts=texts, stop_words=stop_words, token_fn=token_function)
     print("词表长度:{}".format(vocabulary.vocab_size))
-    vocabulary = Vocabulary(stop_words=get_stop_words(), token_fn=token_function)
+    vocabulary = Vocabulary(stop_words=stop_words, token_fn=token_function)
     print("max_sentence_length:{}".format(vocabulary.max_sentence_length))
