@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import torch
 import math
-import numpy as np
 from common.tokenization import *
+import os
+import numpy as np
 
 
 # torch.utils.data.IterableDataset 使用, 参考官网文档: https://pytorch.org/docs/1.2.0/data.html#torch.utils.data.IterableDataset
@@ -32,7 +33,6 @@ class MyIterableDataset(torch.utils.data.IterableDataset):
             iter_end = min(iter_start + per_worker, self.end)
             print("当前worker的id=[{}], 处理的数据区间[{},{})".format(worker_id, iter_start, iter_end))
         return iter(range(iter_start, iter_end))
-
 
 ds = MyIterableDataset(start=3, end=7)
 # 一个worker处理的情况
@@ -223,9 +223,8 @@ print("batch_sampler: {}".format(batch_sampler_drop_last))
 batch_sampler = list(BatchSampler(SequentialSampler(range(10)), batch_size=3, drop_last=True))
 print("batch_sampler_drop_last: {}".format(batch_sampler))
 
-# batch_sampler_drop_last: [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-import os
 
+# batch_sampler_drop_last: [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
 
 class ChineseNewsData(torch.utils.data.Dataset):
     """Chinese News dataset."""
@@ -273,7 +272,11 @@ class ChineseNewsData(torch.utils.data.Dataset):
         """
         text, label = self.data[index], self.targets[index]
         if self.transforms is not None:
-            text, label = self.transforms(text, label)
+            text = self.transforms(text)
+            print("========== transforms text :{} ".format(text))
+        if self.transforms is not None:
+            label = self.transforms(label)
+            print("========== transforms label :{} ".format(label))
         return text, label
 
 
@@ -287,38 +290,39 @@ class Tokenize(object):
     stop_words = get_stop_words()
     vocabulary = Vocabulary(stop_words=stop_words, token_fn=token_function)
 
-    def __call__(self, text, label):
-        print("tokenize text: {}, label:{}".format(text, label))
-        # TODO:
-        #  1.将对每一个句子进行分词， 可以使用jieba分词
-        #  2.去停用词
-        #  3.进行onehot编码， 这里需要全局的word2index字典映射
-        input_id = self.vocabulary.encode(text)
-        return input_id, label
+    def __call__(self, sample):
+        # label 为int类型, 因此下面的条件不成立
+        if isinstance(sample, str):
+            # 只对text进行onehot编码变成input_id
+            sample = self.vocabulary.encode(sample)
+        return sample
 
 
 class ToTensor(object):
     """
-    将数组转换成tensor
+    将input_id(List[int])或者label(int)转换成tensor
     """
 
     def __init__(self, device):
         self._device = device
 
-    def __call__(self, input_ids, label):
-        print("to tensor text: {}".format(text))
-        input_ids = torch.from_numpy(np.array(input_ids)).long()
-        input_ids.to(device=self._device)
-        label = torch.tensor(int(label), device=self._device).long()
-        return input_ids, label
+    def __call__(self, sample):
+        if isinstance(sample, list):
+            # 将input_id转换成LongTensor
+            sample = torch.from_numpy(np.array(sample)).long()
+            sample.to(device=self._device)
+        elif isinstance(sample, int):
+            # 将label转换成LongTensor
+            sample = torch.tensor(sample, device=self._device).long()
+        return sample
 
 
 data_root_path = '/home/hj/dataset/news_data/news_zh'
 
-newdata = ChineseNewsData(split_char='\t', data_root_path=data_root_path,
-                          transforms=None)
-for i in range(len(newdata)):
-    sample = newdata[i]
+news_data = ChineseNewsData(split_char='\t', data_root_path=data_root_path,
+                            transforms=None)
+for i in range(len(news_data)):
+    sample = news_data[i]
     text, label = sample[0], sample[1]
     # 打印前4条
     if i > 3:
@@ -329,15 +333,29 @@ from torchvision import transforms, utils
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device("cpu")
 
-newdata = ChineseNewsData(split_char='\t', data_root_path=data_root_path,
-                          transforms=transforms.Compose([Tokenize(), ToTensor(device=device)]))
-for i in range(len(newdata)):
-    sample = newdata[i]
+news_data = ChineseNewsData(split_char='\t', data_root_path=data_root_path,
+                            transforms=transforms.Compose([Tokenize(), ToTensor(device=device)]))
+
+print(len(news_data))
+
+for i in range(len(news_data)):
+    sample = news_data[i]
     print("iter sample: {}".format(sample))
     text, label = sample[0], sample[1]
-    # 打印前4条
-    if i > 3:
+    # 打印前2条
+    if i > 1:
         break
     print("text:{}, label:{}".format(text, label))
+
+# 需要添加下面这一行代码，否则报下面的错误
+# RuntimeError: Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use the 'spawn' start method
+# torch.multiprocessing.set_start_method('spawn')
+
+# Batch sample
+dataloader = DataLoader(news_data, batch_size=4,
+                        shuffle=True, num_workers=0)
+
+for index_batch, sample_batched in enumerate(dataloader):
+    print("index: {}, len of sample_batched: {}".format(index_batch, len(sample_batched)))
 
 # 参考: https://pytorch.org/tutorials/beginner/data_loading_tutorial.html?highlight=dataloader
