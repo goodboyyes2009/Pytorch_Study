@@ -156,7 +156,7 @@ for epoch in range(5001):
         print("epoch {}, train loss: {}".format(epoch, loss))
 
 # 模型预测
-test_text = "sorry i hate you"
+test_text = "sorry i hate you too"
 
 
 def encode_text(text: str):
@@ -170,10 +170,32 @@ encode_test_text = encode_text(test_text)
 encode_test_text += [0] * (max_sequence_len - len(encode_test_text))
 
 # 转换成tensor
-encode_test_text = torch.tensor(encode_test_text, device=device, dtype=torch.long)
+encode_test_text = torch.tensor(encode_test_text, device=device, dtype=torch.long, requires_grad=False)
+encode_test_text = encode_test_text.squeeze_(dim=0)
 
+# [[1]], [[1]]
+
+cat_encode_test_text = torch.cat((encode_test_text, encode_test_text), dim=0).view(2, -1)
+
+print("cat_encode_test_text: {}".format(cat_encode_test_text))
+
+# 进行tensor append的一种尝试方法: 先使用detach方法获取data, 然后从GPU拷贝至CPU, tensor变成numpy, 再使用numpy.append操作，最后拷贝回GPU
+
+# encode_test_text = encode_test_text.unsqueeze_(dim=0)
+# print("shape: {}".format(encode_test_text.shape))
+# # 获取数据
+# encode_test_text_detach = encode_test_text.detach()
+# # 转移到cpu上，tensor变成numpy
+# encode_test_text_detach_cpu_numpy =  encode_test_text_detach.cpu().numpy()
+#
+# # 下面这句会报错: AttributeError: 'numpy.ndarray' object has no attribute 'append'
+# # encode_test_text_detach_cpu_numpy.append(encode_test_text_detach_cpu_numpy[0])
+# np.append(encode_test_text_detach_cpu_numpy, encode_test_text_detach_cpu_numpy[0])
+# print("encode_test_text_detach_cpu_numpy shape:{}".format(np.shape(encode_test_text_detach_cpu_numpy)))
+#
+# encode_test_text_tensor = torch.from_numpy(encode_test_text_detach_cpu_numpy).to(device=device)
 # predict
-pred =  text_cnn_model(encode_test_text.unsqueeze_(dim=0)).data.max(1, keepdim=True)[1]
+pred =  text_cnn_model(cat_encode_test_text).data.max(1, keepdim=True)[1]
 
 print("pred: {}".format(pred))
 if pred[0][0] == 0:
