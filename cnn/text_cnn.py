@@ -2,9 +2,9 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+
 from common.data_hepler import *
 from common.tokenization import *
-import numpy as np
 
 
 class TextCNN(nn.Module):
@@ -21,6 +21,7 @@ class TextCNN(nn.Module):
             [nn.Conv1d(in_channels=self.embedding_dim, out_channels=self.num_filters[i],
                        kernel_size=self.filter_sizes[i], bias=True) for i in range(len(self.num_filters))])
         self.fc = nn.Linear(in_features=sum(self.num_filters), out_features=num_classes)
+        self.device = torch.device('cuda')
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, input_ids):
@@ -114,97 +115,97 @@ def train_loop(model, optimizer, loss_fn, batch_size=2, num_epochs=100, x_train=
 def evaluate():
     pass
 
+if __name__ == "__main__":
+    # 3 words sentences (=sequence_length is 3)
+    sentences = ["i love you", "he loves me too", "she likes baseball", "i hate you", "sorry for that", "this is awful"]
+    labels = [1, 1, 1, 0, 0, 0]  # 1 is good, 0 is not good.
 
-# 3 words sentences (=sequence_length is 3)
-sentences = ["i love you", "he loves me too", "she likes baseball", "i hate you", "sorry for that", "this is awful"]
-labels = [1, 1, 1, 0, 0, 0]  # 1 is good, 0 is not good.
+    tokenized_texts, word2index, index2word, max_sequence_len = tokenize(sentences, lambda x: x.split())
 
-tokenized_texts, word2index, index2word, max_sequence_len = tokenize(sentences, lambda x: x.split())
+    text_cnn_model, optimizer, loss_fn = initilize_model(vocab_size=len(word2index))
 
-text_cnn_model, optimizer, loss_fn = initilize_model(vocab_size=len(word2index))
-
-# train_loop(text_cnn_model, optimizer, loss_fn, x_train=encode(tokenized_texts, word2index, max_sequence_len),
-#            y_train=labels)
-
-
-inputs = encode(tokenized_texts, word2index, max_sequence_len)
-print("max_sequence_len: {}".format(max_sequence_len))
-device = get_device()
-
-# 将array变成tensor
-labels = torch.tensor(labels, device=device, dtype=torch.long)
-inputs = torch.tensor(inputs, device=device, dtype=torch.long)
-
-for epoch in range(5001):
-
-    # 前向传播进行模型预测
-    predict = text_cnn_model(inputs)
-
-    # 在反向传播前将梯度清零
-    optimizer.zero_grad()
-
-    # 计算loss
-    loss = loss_fn(predict, labels)
-
-    # 通过loss进行反向传播
-    loss.backward()
-
-    # 更新参数
-    optimizer.step()
-
-    if epoch % 100 == 0:
-        print("epoch {}, train loss: {}".format(epoch, loss))
-
-# 模型预测
-test_text = "sorry i hate you too"
+    train_loop(text_cnn_model, optimizer, loss_fn, x_train=encode(tokenized_texts, word2index, max_sequence_len),
+               y_train=labels)
 
 
-def encode_text(text: str):
-    encode_text_input_ids = []
-    for x in text.strip().split():
-        input_id = word2index[x] if x in word2index else word2index['<unk>']
-        encode_text_input_ids.append(input_id)
-    return encode_text_input_ids
+    inputs = encode(tokenized_texts, word2index, max_sequence_len)
+    print("max_sequence_len: {}".format(max_sequence_len))
+    device = get_device()
 
-encode_test_text = encode_text(test_text)
-encode_test_text += [0] * (max_sequence_len - len(encode_test_text))
+    # 将array变成tensor
+    labels = torch.tensor(labels, device=device, dtype=torch.long)
+    inputs = torch.tensor(inputs, device=device, dtype=torch.long)
 
-# 转换成tensor
-encode_test_text = torch.tensor(encode_test_text, device=device, dtype=torch.long, requires_grad=False)
-encode_test_text = encode_test_text.squeeze_(dim=0)
+    for epoch in range(5001):
 
-# encode_test_text shape: [1, 5]
+        # 前向传播进行模型预测
+        predict = text_cnn_model(inputs)
 
-# 使用torch.stack实现 tensor 的append操作; stack先扩展维度，再进行cat操作
-stack_encode_text = torch.stack((encode_test_text, encode_test_text), dim=0)
-# print("stack_encode_text :{}".format(stack_encode_text))
+        # 在反向传播前将梯度清零
+        optimizer.zero_grad()
 
-# 使用cat进行实现 tensor的append方法
+        # 计算loss
+        loss = loss_fn(predict, labels)
 
-# cat_encode_test_text = torch.cat((encode_test_text, encode_test_text), dim=0).view(2, -1)
-#
-# print("cat_encode_test_text: {}".format(cat_encode_test_text))
+        # 通过loss进行反向传播
+        loss.backward()
 
-# 进行tensor append的一种尝试方法: 先使用detach方法获取data, 然后从GPU拷贝至CPU, tensor变成numpy, 再使用numpy.append操作，最后拷贝回GPU
+        # 更新参数
+        optimizer.step()
 
-# encode_test_text = encode_test_text.unsqueeze_(dim=0)
-# print("shape: {}".format(encode_test_text.shape))
-# # 获取数据
-# encode_test_text_detach = encode_test_text.detach()
-# # 转移到cpu上，tensor变成numpy
-# encode_test_text_detach_cpu_numpy =  encode_test_text_detach.cpu().numpy()
-#
-# # 下面这句会报错: AttributeError: 'numpy.ndarray' object has no attribute 'append'
-# # encode_test_text_detach_cpu_numpy.append(encode_test_text_detach_cpu_numpy[0])
-# np.append(encode_test_text_detach_cpu_numpy, encode_test_text_detach_cpu_numpy[0])
-# print("encode_test_text_detach_cpu_numpy shape:{}".format(np.shape(encode_test_text_detach_cpu_numpy)))
-#
-# encode_test_text_tensor = torch.from_numpy(encode_test_text_detach_cpu_numpy).to(device=device)
-# predict
-pred =  text_cnn_model(stack_encode_text).data.max(1, keepdim=True)[1]
+        if epoch % 100 == 0:
+            print("epoch {}, train loss: {}".format(epoch, loss))
 
-print("pred: {}".format(pred))
-if pred[0][0] == 0:
-    print("is Bad mean...")
-else:
-    print("is God mean...")
+    # 模型预测
+    test_text = "sorry i hate you too"
+
+
+    def encode_text(text: str):
+        encode_text_input_ids = []
+        for x in text.strip().split():
+            input_id = word2index[x] if x in word2index else word2index['<unk>']
+            encode_text_input_ids.append(input_id)
+        return encode_text_input_ids
+
+    encode_test_text = encode_text(test_text)
+    encode_test_text += [0] * (max_sequence_len - len(encode_test_text))
+
+    # 转换成tensor
+    encode_test_text = torch.tensor(encode_test_text, device=device, dtype=torch.long, requires_grad=False)
+    encode_test_text = encode_test_text.squeeze_(dim=0)
+
+    # encode_test_text shape: [1, 5]
+
+    # 使用torch.stack实现 tensor 的append操作; stack先扩展维度，再进行cat操作
+    stack_encode_text = torch.stack((encode_test_text, encode_test_text), dim=0)
+    print("stack_encode_text :{}".format(stack_encode_text))
+
+    # 使用cat进行实现 tensor的append方法
+
+    # cat_encode_test_text = torch.cat((encode_test_text, encode_test_text), dim=0).view(2, -1)
+    #
+    # print("cat_encode_test_text: {}".format(cat_encode_test_text))
+
+    # 进行tensor append的一种尝试方法: 先使用detach方法获取data, 然后从GPU拷贝至CPU, tensor变成numpy, 再使用numpy.append操作，最后拷贝回GPU
+
+    # encode_test_text = encode_test_text.unsqueeze_(dim=0)
+    # print("shape: {}".format(encode_test_text.shape))
+    # 获取数据
+    # encode_test_text_detach = encode_test_text.detach()
+    # 转移到cpu上，tensor变成numpy
+    # encode_test_text_detach_cpu_numpy =  encode_test_text_detach.cpu().numpy()
+
+    # 下面这句会报错: AttributeError: 'numpy.ndarray' object has no attribute 'append'
+    # encode_test_text_detach_cpu_numpy.append(encode_test_text_detach_cpu_numpy[0])
+    # np.append(encode_test_text_detach_cpu_numpy, encode_test_text_detach_cpu_numpy[0])
+    # print("encode_test_text_detach_cpu_numpy shape:{}".format(np.shape(encode_test_text_detach_cpu_numpy)))
+
+    # encode_test_text_tensor = torch.from_numpy(encode_test_text_detach_cpu_numpy).to(device=device)
+    # predict
+    pred =  text_cnn_model(stack_encode_text).data.max(1, keepdim=True)[1]
+
+    print("pred: {}".format(pred))
+    if pred[0][0] == 0:
+        print("is Bad mean...")
+    else:
+        print("is God mean...")
