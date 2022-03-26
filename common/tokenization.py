@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-from typing import List, Dict, Optional
 import os
 import pickle
+from typing import List, Dict
+
 import jieba
+import numpy as np
+
+current_path = os.path.dirname(__file__)
+parent_path = os.path.dirname(__file__)
+# 重复嵌套获取到工程目录
+project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 class Vocabulary(object):
 
@@ -20,7 +26,7 @@ class Vocabulary(object):
         self.max_sentence_length = 0
         self.word2index = {}
         self.index2word = {}
-        self.save_path = '../data/vocab.pkl'
+        self.save_path = os.path.join(project_path, 'data/vocab.pkl')
 
         # 加入词汇表中没有未登录词 Out-of-vocabulary(OOV)的代替符号<unk>和用于padding的符号<pad>
         self.word2index['<pad>'] = 0
@@ -51,11 +57,11 @@ class Vocabulary(object):
             except Exception as e:
                 print("加载词表发生异常, {}".format(e))
         else:
-            self._process_data(self._corpus_texts, len(self.word2index))
+            self._process_data(self._corpus_texts, 2)
 
     def _save_vocab(self):
         try:
-            fw = open('../data/vocab.pkl', 'wb')
+            fw = open(os.path.join(project_path, 'data/vocab.pkl', 'wb'))
             vocab_info = {"vocab_size": self.vocab_size, "word2index": self.word2index, "index2word": self.index2word,
                           "max_sentence_length": self.max_sentence_length}
             pickle.dump(vocab_info, fw)
@@ -69,7 +75,7 @@ class Vocabulary(object):
             tokens = [word for word in self._token_fn(text) if word not in self._stop_words]
             # 向word2index中添加单词
             for token in tokens:
-                if token not in word2index:
+                if token not in self.word2index:
                     self.word2index[token] = idx
                     self.index2word[idx] = token
                     idx += 1
@@ -210,7 +216,7 @@ def token_function(text):
 
 def get_stop_words():
     try:
-        stop_words = [word.strip() for word in open('../data/stop_words', 'r', encoding='utf-8')]
+        stop_words = [word.strip() for word in open(os.path.join(project_path, 'data/stop_words'), 'r', encoding='utf-8')]
         return stop_words
     except Exception as e:
         print("获取停用词失败,{}".format(e))
