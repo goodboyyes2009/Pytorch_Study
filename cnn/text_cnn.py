@@ -21,7 +21,6 @@ class TextCNN(nn.Module):
             [nn.Conv1d(in_channels=self.embedding_dim, out_channels=self.num_filters[i],
                        kernel_size=self.filter_sizes[i], bias=True) for i in range(len(self.num_filters))])
         self.fc = nn.Linear(in_features=sum(self.num_filters), out_features=num_classes)
-        self.device = torch.device('cuda')
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, input_ids):
@@ -48,6 +47,30 @@ class TextCNN(nn.Module):
         # shape: [batch_size, num_classes]
         logits = self.fc(self.dropout(x_fc))
         return logits
+
+    def summary(self):
+        """
+        打印每一个层的参数信息
+        :return:
+        """
+        # for name, parameter in self.named_parameters():
+        #     print("name: {}, parameter shape: {}".format(name, parameter.numel()))
+
+        module_parameter_dict = dict((k, v.numel()) for k, v in self.named_parameters())
+        print("module_parameter_dict: {}".format(module_parameter_dict))
+        print_header = "name" + (" " * 8) + "module" + (" " * 8) + "#parameters"
+        print(print_header)
+        print("=" * len(print_header) * 4)
+
+        for name, module in self.named_modules():
+            parameter_dict = dict(
+                filter(lambda item: str(item[0]).__contains__(name), module_parameter_dict.items())) if len(
+                name) > 0 else {}
+            name = name if len(name) > 0 else "None"
+            print("{}        {}        {}".format(name, module, parameter_dict))
+            print("_" * len(print_header) * 4)
+        print("=" * len(print_header) * 4)
+        print("Total params: {}".format(sum(module_parameter_dict.values())))
 
 
 # optimzer
@@ -115,6 +138,7 @@ def train_loop(model, optimizer, loss_fn, batch_size=2, num_epochs=100, x_train=
 def evaluate():
     pass
 
+
 if __name__ == "__main__":
     # 3 words sentences (=sequence_length is 3)
     sentences = ["i love you", "he loves me too", "she likes baseball", "i hate you", "sorry for that", "this is awful"]
@@ -126,7 +150,6 @@ if __name__ == "__main__":
 
     train_loop(text_cnn_model, optimizer, loss_fn, x_train=encode(tokenized_texts, word2index, max_sequence_len),
                y_train=labels)
-
 
     inputs = encode(tokenized_texts, word2index, max_sequence_len)
     print("max_sequence_len: {}".format(max_sequence_len))
@@ -167,6 +190,7 @@ if __name__ == "__main__":
             encode_text_input_ids.append(input_id)
         return encode_text_input_ids
 
+
     encode_test_text = encode_text(test_text)
     encode_test_text += [0] * (max_sequence_len - len(encode_test_text))
 
@@ -202,7 +226,7 @@ if __name__ == "__main__":
 
     # encode_test_text_tensor = torch.from_numpy(encode_test_text_detach_cpu_numpy).to(device=device)
     # predict
-    pred =  text_cnn_model(stack_encode_text).data.max(1, keepdim=True)[1]
+    pred = text_cnn_model(stack_encode_text).data.max(1, keepdim=True)[1]
 
     print("pred: {}".format(pred))
     if pred[0][0] == 0:
