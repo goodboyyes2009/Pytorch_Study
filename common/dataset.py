@@ -80,7 +80,7 @@ class ToTensor(object):
     """
 
     def __init__(self, device):
-        print("ToTensor device:{}".format(device))
+        # print("ToTensor device:{}".format(device))
         self._device = device
 
     def __call__(self, sample):
