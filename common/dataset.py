@@ -13,7 +13,7 @@ class ChineseNewsData(torch.utils.data.Dataset):
 
     def __init__(self, has_header=False, split_char=",", data_root_path=None, train=True, transforms=None):
         super().__init__()
-        self.hasHeader = has_header
+        self.has_header = has_header
         self.data_root_path = data_root_path
         self.train = train
         self.transforms = transforms
@@ -27,7 +27,7 @@ class ChineseNewsData(torch.utils.data.Dataset):
         with open(os.path.join(self.data_root_path, file_name), 'r', encoding='utf-8') as f:
             for line in f:
                 try:
-                    if self.hasHeader:
+                    if self.has_header:
                         continue
                     splits = line.split(self.split_char)
                     if len(splits) < 2:
