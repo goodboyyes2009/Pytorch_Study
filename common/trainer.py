@@ -100,6 +100,8 @@ class Trainer:
         """
         correct = 0
         total = 0
+        # to set the dropout and batch normalization layers to evaluation mode
+        model.eval()
         with torch.no_grad():  # 评估不需要求梯度
             for val_sample in val_data_loader:
                 x_val = val_sample[0]
