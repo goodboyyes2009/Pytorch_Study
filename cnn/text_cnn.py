@@ -5,7 +5,7 @@ from torch.nn import functional as F
 
 from common.data_hepler import *
 from common.tokenization import *
-
+from common import module_util
 
 class TextCNN(nn.Module):
 
@@ -49,28 +49,7 @@ class TextCNN(nn.Module):
         return logits
 
     def summary(self):
-        """
-        打印每一个层的参数信息
-        :return:
-        """
-        # for name, parameter in self.named_parameters():
-        #     print("name: {}, parameter shape: {}".format(name, parameter.numel()))
-
-        module_parameter_dict = dict((k, v.numel()) for k, v in self.named_parameters())
-        print("module_parameter_dict: {}".format(module_parameter_dict))
-        print_header = "name" + (" " * 8) + "module" + (" " * 8) + "#parameters"
-        print(print_header)
-        print("=" * len(print_header) * 4)
-
-        for name, module in self.named_modules():
-            parameter_dict = dict(
-                filter(lambda item: str(item[0]).__contains__(name), module_parameter_dict.items())) if len(
-                name) > 0 else {}
-            name = name if len(name) > 0 else "None"
-            print("{}        {}        {}".format(name, module, parameter_dict))
-            print("_" * len(print_header) * 4)
-        print("=" * len(print_header) * 4)
-        print("Total params: {}".format(sum(module_parameter_dict.values())))
+        module_util.print_model_summary(self)
 
 
 # optimzer
