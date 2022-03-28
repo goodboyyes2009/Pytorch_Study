@@ -15,6 +15,7 @@ from common.tokenization import get_stop_words, token_function
 parser = argparse.ArgumentParser(description="Train Text CNN Model")
 parser.add_argument('--data_root_path', help="数据根目录", required=True, type=str)
 parser.add_argument('--device', help="cpu or gpu", type=str, default='gpu')
+parser.add_argument('--embedding_dim', help="词向量维度", type=int, default=100)
 parser.add_argument('--num_filters', help='CNN滤波器的个数', required=True, type=int, nargs='+')
 parser.add_argument('--filter_sizes', help='滤波器的kernel size', required=True, type=int, nargs='+')
 parser.add_argument('--num_classes', help="分类任务的标签数量", type=int, default=5)
@@ -45,7 +46,7 @@ if __name__ == "__main__":
 
     vocab = Vocabulary(token_fn=token_function, stop_words=get_stop_words())
 
-    embedding_dim = vocab.max_sentence_length
+    # embedding_dim = vocab.max_sentence_length
     print("vocab size: {}".format(vocab.vocab_size))
     # num_filters = [100, 100, 100]
     # filter_sizes = [2, 3, 3]
@@ -55,7 +56,7 @@ if __name__ == "__main__":
 
     # 初始化模型
     text_cnn_model = TextCNN(vocab_size=vocab.vocab_size,
-                             embedding_dim=embedding_dim,
+                             embedding_dim=args.embedding_dim,
                              num_filters=args.num_filters,
                              filter_sizes=args.filter_sizes,
                              num_classes=args.num_classes,

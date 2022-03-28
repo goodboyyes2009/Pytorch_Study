@@ -11,6 +11,7 @@ parent_path = os.path.dirname(__file__)
 # 重复嵌套获取到工程目录
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+
 class Vocabulary(object):
 
     def __init__(self, token_fn, stop_words, corpus_texts=None):
@@ -216,17 +217,17 @@ def token_function(text):
 
 def get_stop_words():
     try:
-        stop_words = [word.strip() for word in open(os.path.join(project_path, 'data/stop_words'), 'r', encoding='utf-8')]
+        stop_words = [word.strip() for word in
+                      open(os.path.join(project_path, 'data/stop_words'), 'r', encoding='utf-8')]
         return stop_words
     except Exception as e:
         print("获取停用词失败,{}".format(e))
         return []
 
 
-def load_pretrained_tencent_word_embedding(word2vec_path):
+def load_pretrained_tencent_word_embedding(word2vec_path, embedding_dim=100):
     from gensim.models import KeyedVectors
     from collections import OrderedDict
-
 
     print("start load tencent word2vec ....")
     tencent_wv_text = KeyedVectors.load_word2vec_format(word2vec_path, binary=False)
@@ -236,7 +237,7 @@ def load_pretrained_tencent_word_embedding(word2vec_path):
 
     vocab = Vocabulary(token_fn=token_function, stop_words=get_stop_words())
     vocab_size = vocab.vocab_size
-    sorted_word2index = sorted(vocab.word2index.items(), key=lambda kv:(kv[1], kv[0]))
+    sorted_word2index = sorted(vocab.word2index.items(), key=lambda kv: (kv[1], kv[0]))
 
     order_index2word = OrderedDict()
     ovv_cnt = 0
@@ -245,41 +246,62 @@ def load_pretrained_tencent_word_embedding(word2vec_path):
             tencent_wv_embedding = tencent_wv_text[w]
             order_index2word[index] = tencent_wv_embedding
         else:
-            print("未登录词: {}".format(w))
             ovv_cnt += 1
-            # OVV的情况， 给一个随机的词
-    print("{}/{}".format(ovv_cnt, vocab_size))
-    np.save('news_tencent_wv_embedding_d200-v0.2.0.npy', order_index2word)
+            # Out of Vocabulary(OOV)的情况， 给一个随机的embedding
 
+            # 使用torch的做法
+            # oov_embedding = np.ones(1, embedding_dim)
+            # torch.nn.init.xavier_uniform_(oov_embedding)
+
+            # 使用numpy
+            oov_embedding = np.random.randn(1, embedding_dim) / np.sqrt(embedding_dim)
+            print("{%d: %s}" % (index, w))
+            order_index2word[index] = oov_embedding
+    print("{}/{}".format(ovv_cnt, vocab_size))
+    np.save('news_tencent_wv_embedding_d100-v0.2.0.npy', order_index2word)
+
+def load_tencent_word2vec_from_numpy(npy_path):
+    target_index2word_dict = np.load(npy_path, allow_pickle=True)
+    return target_index2word_dict
 
 
 if __name__ == "__main__":
-    texts = ["i love you", "i like cat", "i hate dog", "you just a boy"]
-    tokenized_texts, word2index, index2word, max_sequence_length = tokenize(texts, lambda x: x.split())
-    assert tokenized_texts == [['i', 'love', 'you'], ['i', 'like', 'cat'], ['i', 'hate', 'dog'],
-                               ['you', 'just', 'a', 'boy']]
-    assert index2word[word2index["i"]] == "i"
-    encode_texts = encode(tokenized_texts, word2index, max_sequence_length)
-    print("encode_texts: {}".format(encode_texts))
-    decode_result = decode_single([1, 2, 3, 2, 0], index2word)
-    print(decode_result)
+    # texts = ["i love you", "i like cat", "i hate dog", "you just a boy"]
+    # tokenized_texts, word2index, index2word, max_sequence_length = tokenize(texts, lambda x: x.split())
+    # assert tokenized_texts == [['i', 'love', 'you'], ['i', 'like', 'cat'], ['i', 'hate', 'dog'],
+    #                            ['you', 'just', 'a', 'boy']]
+    # assert index2word[word2index["i"]] == "i"
+    # encode_texts = encode(tokenized_texts, word2index, max_sequence_length)
+    # print("encode_texts: {}".format(encode_texts))
+    # decode_result = decode_single([1, 2, 3, 2, 0], index2word)
+    # print(decode_result)
+    #
+    # data_root_path = '/home/hj/dataset/news_data/news_zh'
+    #
+    # data_file_list = [
+    #     os.path.join(data_root_path, 'dev.tsv'),
+    #     os.path.join(data_root_path, 'train.tsv'),
+    #     os.path.join(data_root_path, 'test.tsv'),
+    # ]
+    #
+    # texts = [line.split('\t')[0].strip() for f in data_file_list for line in open(f, 'r', encoding='utf-8')]
+    #
+    # stop_words = get_stop_words()
+    #
+    # vocabulary = Vocabulary(corpus_texts=texts, stop_words=stop_words, token_fn=token_function)
+    # print("词表长度:{}".format(vocabulary.vocab_size))
+    # vocabulary = Vocabulary(stop_words=stop_words, token_fn=token_function)
+    # print("max_sentence_length:{}".format(vocabulary.max_sentence_length))
 
-    data_root_path = '/home/hj/dataset/news_data/news_zh'
+    # word2vec_path = "/home/hj/data/pretrain-word2vec/tencent-ailab-embedding-zh-d200-v0.2.0-s/tencent-ailab-embedding-zh-d200-v0.2.0-s.txt"
+    # word2vec_path = "/home/hj/dataset/word2vec/tencent-ailab-embedding-zh-d100-v0.2.0/tencent-ailab-embedding-zh-d100-v0.2.0.txt"
+    # load_pretrained_tencent_word_embedding(word2vec_path)
 
-    data_file_list = [
-        os.path.join(data_root_path, 'dev.tsv'),
-        os.path.join(data_root_path, 'train.tsv'),
-        os.path.join(data_root_path, 'test.tsv'),
-    ]
-
-    texts = [line.split('\t')[0].strip() for f in data_file_list for line in open(f, 'r', encoding='utf-8')]
-
-    stop_words = get_stop_words()
-
-    vocabulary = Vocabulary(corpus_texts=texts, stop_words=stop_words, token_fn=token_function)
-    print("词表长度:{}".format(vocabulary.vocab_size))
-    vocabulary = Vocabulary(stop_words=stop_words, token_fn=token_function)
-    print("max_sentence_length:{}".format(vocabulary.max_sentence_length))
-
-    word2vec_path = "/home/hj/data/pretrain-word2vec/tencent-ailab-embedding-zh-d200-v0.2.0-s/tencent-ailab-embedding-zh-d200-v0.2.0-s.txt"
-    load_pretrained_tencent_word_embedding(word2vec_path)
+    npy_path = 'news_tencent_wv_embedding_d100-v0.2.0.npy'
+    index2word_embedding_dict = load_tencent_word2vec_from_numpy(npy_path)
+    # for k in index2word_embedding_dict.item():
+    #     print(k)
+    # np.ndarray.
+    f = open("xxx", 'w', encoding='utf-8')
+    f.write(str(index2word_embedding_dict))
+    f.close()
