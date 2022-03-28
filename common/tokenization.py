@@ -223,8 +223,34 @@ def get_stop_words():
         return []
 
 
-def load_pretrained_tencent_word_embedding():
-    pass
+def load_pretrained_tencent_word_embedding(word2vec_path):
+    from gensim.models import KeyedVectors
+    from collections import OrderedDict
+
+
+    print("start load tencent word2vec ....")
+    tencent_wv_text = KeyedVectors.load_word2vec_format(word2vec_path, binary=False)
+    print("load tencent word2vec end ....")
+
+    # numpy保存顺序字典
+
+    vocab = Vocabulary(token_fn=token_function, stop_words=get_stop_words())
+    vocab_size = vocab.vocab_size
+    sorted_word2index = sorted(vocab.word2index.items(), key=lambda kv:(kv[1], kv[0]))
+
+    order_index2word = OrderedDict()
+    ovv_cnt = 0
+    for w, index in sorted_word2index:
+        if w in tencent_wv_text:
+            tencent_wv_embedding = tencent_wv_text[w]
+            order_index2word[index] = tencent_wv_embedding
+        else:
+            print("未登录词: {}".format(w))
+            ovv_cnt += 1
+            # OVV的情况， 给一个随机的词
+    print("{}/{}".format(ovv_cnt, vocab_size))
+    np.save('news_tencent_wv_embedding_d200-v0.2.0.npy', order_index2word)
+
 
 
 if __name__ == "__main__":
@@ -254,3 +280,6 @@ if __name__ == "__main__":
     print("词表长度:{}".format(vocabulary.vocab_size))
     vocabulary = Vocabulary(stop_words=stop_words, token_fn=token_function)
     print("max_sentence_length:{}".format(vocabulary.max_sentence_length))
+
+    word2vec_path = "/home/hj/data/pretrain-word2vec/tencent-ailab-embedding-zh-d200-v0.2.0-s/tencent-ailab-embedding-zh-d200-v0.2.0-s.txt"
+    load_pretrained_tencent_word_embedding(word2vec_path)
