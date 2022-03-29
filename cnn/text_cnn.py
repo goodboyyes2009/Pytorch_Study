@@ -22,7 +22,7 @@ class TextCNN(nn.Module):
         self.freeze_embedding = freeze_embedding
         if pretrained_embedding is not None:
             self.vocab_size, self.embedding_dim = np.shape(pretrained_embedding)
-            nn.Embedding.from_pretrained(pretrained_embedding, freeze=freeze_embedding)
+            self.embedding = nn.Embedding.from_pretrained(pretrained_embedding, freeze=freeze_embedding)
         else:
             self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
         self.conv1d_list = nn.ModuleList(

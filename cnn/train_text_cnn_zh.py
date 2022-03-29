@@ -39,9 +39,9 @@ if __name__ == "__main__":
     print("device: {}".format(device))
 
     # 初始化模型
-    encode_fn = None
     vocab = Vocabulary(token_fn=token_function, stop_words=get_stop_words())
 
+    encode_fn = vocab.encode
     if args.word_embedding == 'onehot':
         print("=== use onehot word embedding.....")
         print("vocab size: {}".format(vocab.vocab_size))
@@ -51,7 +51,6 @@ if __name__ == "__main__":
                                  filter_sizes=args.filter_sizes,
                                  num_classes=args.num_classes,
                                  dropout=args.dropout)
-        encode_fn = vocab.encode
 
     else:
         print("=== use tencent word embedding.....")
@@ -61,14 +60,10 @@ if __name__ == "__main__":
         text_cnn_model = TextCNN(pretrained_embedding= tencent_wv_embedding,
                                  freeze_embedding=freeze,
                                  embedding_dim=args.embedding_dim,
-                                 # num_filters=args.num_filters,
-                                 # filter_sizes=args.filter_sizes,
-                                 num_filters=[100,100,100],
-                                 filter_sizes=[3, 4, 5],
+                                 num_filters=args.num_filters,
+                                 filter_sizes=args.filter_sizes,
                                  num_classes=args.num_classes,
                                  dropout=args.dropout)
-
-        encode_fn = vocab.encode_by_tencent_word2vec
 
     news_train_data = ChineseNewsData(split_char='\t', data_root_path=args.data_root_path,
                                       transforms=transforms.Compose(

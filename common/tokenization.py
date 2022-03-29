@@ -121,7 +121,9 @@ class Vocabulary(object):
         seg_words = [w for w in self._token_fn(text) if w not in self._stop_words]
 
         # padding
-        seg_words += '<pad>' * (self.max_sentence_length - len(seg_words))
+        while(len(seg_words) < self.max_sentence_length):
+            seg_words.append('<pad>')
+
         input_id = []
         embedding_dim = tencent_wv_embedding.shape[1]
         for word in seg_words:
@@ -131,7 +133,7 @@ class Vocabulary(object):
             else:
                 unknown_wv = np.random.randn(1, embedding_dim) / np.sqrt(embedding_dim)
                 input_id.append(unknown_wv)
-        return input_id
+        return np.array(input_id)
 
 
 def tokenize(texts, token_fn):
@@ -289,7 +291,7 @@ def load_tencent_word2vec_from_numpy():
     target_embedding = [
         np.squeeze(target_index2word_dict.take(0)[i], axis=0) if np.ndim(target_index2word_dict.take(0)[i]) > 1 else
         target_index2word_dict.take(0)[i] for i in range(len(target_index2word_dict.take(0)))]
-    target_embedding = torch.from_numpy(np.array(target_embedding, dtype=np.float))
+    target_embedding = torch.from_numpy(np.array(target_embedding, dtype=np.float32))
     return target_embedding
 
 
