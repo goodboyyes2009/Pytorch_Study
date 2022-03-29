@@ -4,4 +4,5 @@ python  ../cnn/train_text_cnn_zh.py \
         --filter_sizes 3 4 5 \
         --max_epochs 100 \
         --word_embedding tencent \
+        --freeze_embedding True \
         --data_root_path=/home/hj/dataset/news_data/news_zh

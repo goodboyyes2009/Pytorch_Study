@@ -11,3 +11,9 @@ Accuracy: 0.459016
 
 torch.nn.embedding 加参数: padding_idx=0, max_norm=5.0
 Accuracy: 0.295082
+
+tencent embedding
+Accuracy: 0.385246
+
+tencent embedding freeze
+Accuracy: 0.344262
