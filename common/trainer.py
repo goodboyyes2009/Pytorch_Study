@@ -29,7 +29,6 @@ class Trainer:
         for epoch in range(max_epochs):
 
             for index_batch, batch in enumerate(train_loader):
-                print("batch: {}".format(batch))
                 x_batched = batch[0]
                 y_batched = batch[1]
 
