@@ -2,6 +2,7 @@
 import os
 import pickle
 from typing import List, Dict
+import torch
 
 import jieba
 import numpy as np
@@ -112,6 +113,25 @@ class Vocabulary(object):
     def decodes(self, input_ids: np.array) -> np.array:
         """ 将多个onehot向量编码为多个句子的分词列表 """
         return np.array([self.decode(input_id) for input_id in input_ids])
+
+    # 使用tencent的词向量进行编码
+    def encode_by_tencent_word2vec(self, text):
+        tencent_wv_embedding = load_tencent_word2vec_from_numpy()
+
+        seg_words = [w for w in self._token_fn(text) if w not in self._stop_words]
+
+        # padding
+        seg_words += '<pad>' * (self.max_sentence_length - len(seg_words))
+        input_id = []
+        embedding_dim = tencent_wv_embedding.shape[1]
+        for word in seg_words:
+            if word in self.word2index:
+                tencent_wv = np.array(tencent_wv_embedding[self.word2index[word]])
+                input_id.append(tencent_wv)
+            else:
+                unknown_wv = np.random.randn(1, embedding_dim) / np.sqrt(embedding_dim)
+                input_id.append(unknown_wv)
+        return input_id
 
 
 def tokenize(texts, token_fn):
@@ -260,9 +280,17 @@ def load_pretrained_tencent_word_embedding(word2vec_path, embedding_dim=100):
     print("{}/{}".format(ovv_cnt, vocab_size))
     np.save('news_tencent_wv_embedding_d100-v0.2.0.npy', order_index2word)
 
-def load_tencent_word2vec_from_numpy(npy_path):
+
+def load_tencent_word2vec_from_numpy():
+    npy_path = os.path.join(project_path, 'common/news_tencent_wv_embedding_d100-v0.2.0.npy')
     target_index2word_dict = np.load(npy_path, allow_pickle=True)
-    return target_index2word_dict
+    # target_embedding = list(map(lambda x: np.shape(x), [target_index2word_dict.take(0)[i] for i in
+    #                                                     range(len(target_index2word_dict.take(0)))]))
+    target_embedding = [
+        np.squeeze(target_index2word_dict.take(0)[i], axis=0) if np.ndim(target_index2word_dict.take(0)[i]) > 1 else
+        target_index2word_dict.take(0)[i] for i in range(len(target_index2word_dict.take(0)))]
+    target_embedding = torch.from_numpy(np.array(target_embedding, dtype=np.float))
+    return target_embedding
 
 
 if __name__ == "__main__":
@@ -298,10 +326,5 @@ if __name__ == "__main__":
     # load_pretrained_tencent_word_embedding(word2vec_path)
 
     npy_path = 'news_tencent_wv_embedding_d100-v0.2.0.npy'
-    index2word_embedding_dict = load_tencent_word2vec_from_numpy(npy_path)
-    # for k in index2word_embedding_dict.item():
-    #     print(k)
-    # np.ndarray.
-    f = open("xxx", 'w', encoding='utf-8')
-    f.write(str(index2word_embedding_dict))
-    f.close()
+    index2word_embedding = load_tencent_word2vec_from_numpy()
+    print(index2word_embedding)

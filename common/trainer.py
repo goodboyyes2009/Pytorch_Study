@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-
 class Trainer:
     def __init__(self, model, optimizer, loss_fn):
         self.model = model
@@ -30,6 +29,7 @@ class Trainer:
         for epoch in range(max_epochs):
 
             for index_batch, batch in enumerate(train_loader):
+                print("batch: {}".format(batch))
                 x_batched = batch[0]
                 y_batched = batch[1]
 
@@ -42,17 +42,17 @@ class Trainer:
                 total_loss += loss
                 loss_count += 1
 
-                if (eval_interval is not None) and (index_batch % eval_interval == 0):
-                    avg_loss = total_loss / loss_count
-                    elapsed_time = time.time() - start_time
-                    # int(len(data_loader)/batch_size + 1 是dataloader在一个线程的情况下的计算方式，多个线程的情况下还需要处以线程数
-                    print('| epoch %d |  iter %d / %d | time %d[s] | train loss %.2f'
-                          % (self.current_epoch + 1, index_batch + 1,
-                             int(len(train_loader) / train_loader.batch_size) + 1,
-                             elapsed_time, avg_loss))
-                    self.loss_list.append(float(avg_loss))
-                    total_loss = 0
-                    loss_count = 0
+                # if (eval_interval is not None) and (index_batch % eval_interval == 0):
+                #     avg_loss = total_loss / loss_count
+                #     elapsed_time = time.time() - start_time
+                #     # int(len(data_loader)/batch_size + 1 是dataloader在一个线程的情况下的计算方式，多个线程的情况下还需要处以线程数
+                #     print('| epoch %d |  iter %d / %d | time %d[s] | train loss %.2f'
+                #           % (self.current_epoch + 1, index_batch + 1,
+                #              int(len(train_loader) / train_loader.batch_size) + 1,
+                #              elapsed_time, avg_loss))
+                #     self.loss_list.append(float(avg_loss))
+                #     total_loss = 0
+                #     loss_count = 0
 
             # 每一个打印当前的训练误差和评估误差
             if val_loader:

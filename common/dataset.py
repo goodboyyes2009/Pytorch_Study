@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import torch.utils
 import os
+
 import numpy as np
-from common.tokenization import get_stop_words, Vocabulary, token_function
+import torch.utils
 
 
 class ChineseNewsData(torch.utils.data.Dataset):
@@ -61,16 +61,18 @@ class ChineseNewsData(torch.utils.data.Dataset):
 # tokenize
 class Tokenize(object):
     """
-    对文本句子进行分词，然后进行onehot编码
+    对文本进行编码
     """
-    stop_words = get_stop_words()
-    vocabulary = Vocabulary(stop_words=stop_words, token_fn=token_function)
+
+    def __init__(self, encode_fn):
+        self.encode_fn = encode_fn
+
 
     def __call__(self, sample):
         # label 为int类型, 因此下面的条件不成立
         if isinstance(sample, str):
             # 只对text进行onehot编码变成input_id
-            sample = self.vocabulary.encode(sample)
+            sample = self.encode_fn(sample)
         return sample
 
 

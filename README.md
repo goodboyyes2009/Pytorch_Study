@@ -7,3 +7,7 @@ cd scripts
 ```
 epoch 99 | train loss 1.45 | evaluate loss 1.48
 Accuracy: 0.483607
+Accuracy: 0.459016
+
+torch.nn.embedding 加参数: padding_idx=0, max_norm=5.0
+Accuracy: 0.295082

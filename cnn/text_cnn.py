@@ -7,16 +7,24 @@ from common.data_hepler import *
 from common.tokenization import *
 from common import module_util
 
+
 class TextCNN(nn.Module):
 
-    def __init__(self, vocab_size=None, embedding_dim=None, num_filters=[100, 100, 100], filter_sizes=[3, 4, 5],
+    def __init__(self, vocab_size=None, pretrained_embedding=None, freeze_embedding=False, embedding_dim=None,
+                 num_filters=[100, 100, 100], filter_sizes=[3, 4, 5],
                  num_classes=2, dropout=0.5):
         super().__init__()
         self.vocab_size = vocab_size
         self.filter_sizes = filter_sizes
         self.num_filters = num_filters
         self.embedding_dim = embedding_dim
-        self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
+        self.pretrained_embedding = pretrained_embedding
+        self.freeze_embedding = freeze_embedding
+        if pretrained_embedding is not None:
+            self.vocab_size, self.embedding_dim = np.shape(pretrained_embedding)
+            nn.Embedding.from_pretrained(pretrained_embedding, freeze=freeze_embedding)
+        else:
+            self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
         self.conv1d_list = nn.ModuleList(
             [nn.Conv1d(in_channels=self.embedding_dim, out_channels=self.num_filters[i],
                        kernel_size=self.filter_sizes[i], bias=True) for i in range(len(self.num_filters))])
