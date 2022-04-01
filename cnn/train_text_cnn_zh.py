@@ -12,23 +12,22 @@ from cnn.text_cnn import TextCNN
 from common.trainer import Trainer
 from common.tokenization import Vocabulary, get_stop_words, token_function, load_tencent_word2vec_from_numpy
 
-parser = argparse.ArgumentParser(description="Train Text CNN Model")
-parser.add_argument('--data_root_path', help="数据根目录", default='/home/hj/data/nlp/news_data', type=str)
-parser.add_argument('--device', help="cpu or gpu", type=str, default='gpu')
-parser.add_argument('--embedding_dim', help="词向量维度", type=int, default=100)
-parser.add_argument('--num_filters', help='CNN滤波器的个数', type=int, nargs='+')
-parser.add_argument('--filter_sizes', help='滤波器的kernel size', type=int, nargs='+')
-parser.add_argument('--num_classes', help="分类任务的标签数量", type=int, default=5)
-parser.add_argument('--dropout', help='dropout', type=float, default=0.5)
-parser.add_argument('--learning_rate', help='learning_rate', type=float, default=0.01)
-parser.add_argument('--max_epochs', help='max_epochs', type=int, default=10)
-parser.add_argument('--batch_size', help='batch_size', type=int, default=1000)
-parser.add_argument('--eval_interval', help='eval_interval', type=int, default=100)
-parser.add_argument('--word_embedding', help="onehot or tencent", type=str, default='tencent')
-parser.add_argument('--freeze_embedding', help='freeze_embedding True or False', choices=('True', 'False'),
-                    default='False')
-
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Train Text CNN Model")
+    parser.add_argument('--data_root_path', help="data path (require=True)", required=True, type=str)
+    parser.add_argument('--device', help="cpu or gpu (default=gpu)", type=str, default='gpu')
+    parser.add_argument('--embedding_dim', help="词向量维度 (default=100)", type=int, default=100)
+    parser.add_argument('--num_filters', help='CNN滤波器的个数', type=int, nargs='+')
+    parser.add_argument('--filter_sizes', help='滤波器的kernel size', type=int, nargs='+')
+    parser.add_argument('--num_classes', help="分类任务的标签数量 (default=5)", type=int, default=5)
+    parser.add_argument('--dropout', help='dropout (default=0.5)', type=float, default=0.5)
+    parser.add_argument('--learning_rate', help='learning rate (default=0.01)', type=float, default=0.01)
+    parser.add_argument('--max_epochs', help='max epochs (default=10)', type=int, default=10)
+    parser.add_argument('--batch_size', help='batch size (default=100)', type=int, default=100)
+    parser.add_argument('--eval_interval', help='eval interval (default=100)', type=int, default=100)
+    parser.add_argument('--word_embedding', help="onehot or tencent (default=onehot)", type=str, default='onehot')
+    parser.add_argument('--freeze_embedding', help='freeze embedding (default=False)', choices=('True', 'False'),
+                        default='False')
     args = parser.parse_args()
     print(args)
 
@@ -57,7 +56,7 @@ if __name__ == "__main__":
         tencent_wv_embedding = load_tencent_word2vec_from_numpy()
 
         freeze = True if args.freeze_embedding == 'True' else False
-        text_cnn_model = TextCNN(pretrained_embedding= tencent_wv_embedding,
+        text_cnn_model = TextCNN(pretrained_embedding=tencent_wv_embedding,
                                  freeze_embedding=freeze,
                                  embedding_dim=args.embedding_dim,
                                  num_filters=args.num_filters,
