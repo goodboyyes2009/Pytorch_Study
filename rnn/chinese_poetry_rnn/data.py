@@ -32,6 +32,7 @@ if __name__ == "__main__":
         "no#": 87
     }
     """
+    # https://pynative.com/python-convert-json-data-into-custom-python-object/
     # student = Student(1, "Emma")
     #
     # # encode Object it
