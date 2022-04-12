@@ -19,13 +19,34 @@ class PoetryEncoder(JSONEncoder):
 class Tokenization(object):
 
     def __init__(self):
-        self.vocab = self._load_data()
-        self.word2index = {}
-        self.index2word = {}
-        self.padding_char = "</s>"
-        self.start_of_poetry_char = "<START>"
-        self.end_of_poetry_char = "<END>"
         self.max_poetry_length = 125  # 最长的整首诗的长度
+
+        # 判断word2index.pkl, index2word.pkl是否存在
+        if os.path.exists('word2index.pkl') and os.path.exists('index2word.pkl'):
+            pass
+        else:
+            self.vocab = self._load_data()
+            self.word2index = {}
+            self.index2word = {}
+            self.padding_char = "</s>"
+            self.start_of_poetry_char = "<START>"
+            self.end_of_poetry_char = "<END>"
+
+            # init word2index
+            self.word2index = {w: i + 3 for i, w in enumerate(self.vocab)}
+            self.word2index[self.padding_char] = 0
+            self.word2index[self.start_of_poetry_char] = 1
+            self.word2index[self.end_of_poetry_char] = 2
+
+            # init index2word
+            self.index2word = {i + 3: w for i, w in enumerate(self.vocab)}
+            self.index2word[0] = self.padding_char
+            self.index2word[1] = self.start_of_poetry_char
+            self.index2word[2] = self.end_of_poetry_char
+
+            self.vocab.append(self.padding_char)
+            self.vocab.append(self.start_of_poetry_char)
+            self.vocab.append(self.end_of_poetry_char)
 
     def _load_data(self):
         data_dir = "../../data/quan_tang_shi/json"
@@ -44,12 +65,13 @@ class Tokenization(object):
                 print("解析{}失败,{}".format(file_name, e))
             finally:
                 f.close()
-        return set(char_list)
+        # 由于set是无序的，加一个list确保word有序
+        return list(set(char_list))
 
-    def encode(self):
+    def encode(self, text):
         pass
 
-    def decode(self):
+    def decode(self, input_id):
         pass
 
 
@@ -80,7 +102,7 @@ if __name__ == "__main__":
     p = json.loads(s)
     pp = PoetryInfo(**p)
     print(pp.paragraphs)
+
     s = list(map(lambda text: text.replace(r".*?(--*.?)", ''), pp.paragraphs))
     print(s)
     tt = Tokenization()
-    # tt.load_data()
