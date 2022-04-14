@@ -2,6 +2,7 @@
 import json
 from json import JSONEncoder
 import os
+from common.file_util import *
 
 
 class PoetryInfo(object):
@@ -19,18 +20,22 @@ class PoetryEncoder(JSONEncoder):
 class Tokenization(object):
 
     def __init__(self):
-        self.max_poetry_length = 125  # 最长的整首诗的长度
 
-        # 判断word2index.pkl, index2word.pkl是否存在
-        if os.path.exists('word2index.pkl') and os.path.exists('index2word.pkl'):
-            pass
+        # 判断poetry_vocab.pkl文件是否存在
+        vocab_path = 'poetry_vocab.pkl'
+        self.padding_char = "</s>"
+        self.start_of_poetry_char = "<START>"
+        self.end_of_poetry_char = "<END>"
+        if os.path.exists(vocab_path):
+            pickle_obj = load_pickle(vocab_path)
+            self.vocab = pickle_obj['vocab']
+            self.word2index = pickle_obj['word2index']
+            self.index2word = pickle_obj['index2word']
+
         else:
             self.vocab = self._load_data()
             self.word2index = {}
             self.index2word = {}
-            self.padding_char = "</s>"
-            self.start_of_poetry_char = "<START>"
-            self.end_of_poetry_char = "<END>"
 
             # init word2index
             self.word2index = {w: i + 3 for i, w in enumerate(self.vocab)}
@@ -68,8 +73,10 @@ class Tokenization(object):
         # 由于set是无序的，加一个list确保word有序
         return list(set(char_list))
 
-    def encode(self, text):
-        pass
+    def encode(self, text, max_poetry_length=125):
+        text = text[:max_poetry_length]
+        text = [self.word2index[w] if w in self.word2index else self.word2index[self.padding_char] for w in text]
+
 
     def decode(self, input_id):
         pass
