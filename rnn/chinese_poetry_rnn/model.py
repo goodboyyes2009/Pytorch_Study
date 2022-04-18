@@ -23,7 +23,8 @@ class PoetryRNNModel(nn.Module):
         else:
             h_0, c_0 = hidden
 
-        # size: sequence_length, batch_size, embedding_dim
+        input = input.transpose(0,1)
+        # size: (sequence_length, batch_size, embedding_dim)
         embeds = self.embedding(input)
         # output size: (sequence_length, batch_size,hidde_dim
         output, hidden = self.lstm(embeds, (h_0, c_0))
