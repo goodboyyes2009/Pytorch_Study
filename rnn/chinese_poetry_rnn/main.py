@@ -46,11 +46,10 @@ def train(**kwargs):
     if conf.use_gpu:
         poetry_model.to(device)
         criterion.to(device)
-
+    cnt = 0
+    total_loss = 0
     for epoch in range(conf.epoch):
-        cnt = 0
-        total_loss = 0
-        for ii, data_ in tqdm.tqdm(enumerate(data_loader)):
+        for ii, data_ in enumerate(data_loader):
             data_ = data_.long().transpose(1, 0).contiguous()
             if conf.use_gpu:
                 data_ = data_.to(device)
@@ -63,8 +62,11 @@ def train(**kwargs):
             loss.backward()
             optimizer.step()
             cnt += 1
-        if (1 + ii) % 20 == 0:
-            print("loss: {}".format(total_loss / cnt))
+            if (1 + ii) % 20 == 0:
+                print("epoch: {}, loss: {}".format(epoch, (total_loss / cnt)))
+                cnt = 0
+                total_loss = 0
+
 
 
 
@@ -144,5 +146,5 @@ def gen(**kwargs):
     result = gen_poetry(model, start_words, index2word, word2index, prefix_words)
     print(''.join(result))
 
-
-train()
+if __name__ == "__main__":
+    train()
