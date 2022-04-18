@@ -138,9 +138,7 @@ def gen(**kwargs):
         start_words = conf.start_words.decode('utf8')
         prefix_words = conf.prefix_words.decode('utf8') if conf.prefix_words else None
 
-    start_words = start_words.replace(',', u'，') \
-        .replace('.', u'。') \
-        .replace('?', u'？')
+    start_words = start_words.replace(',', u'，').replace('.', u'。').replace('?', u'？')
 
     gen_poetry = generate
     result = gen_poetry(model, start_words, index2word, word2index, prefix_words)
