@@ -66,7 +66,14 @@ def train(**kwargs):
                 print("epoch: {}, loss: {}".format(epoch, (total_loss / cnt)))
                 cnt = 0
                 total_loss = 0
-
+                # # 诗歌原文
+                # poetrys = [[index2word[_word] for _word in data_[:, _iii].tolist()] for _iii in range(data_.shape[1])][:16]
+                #
+                # gen_poetries =[]
+                # for word in list(u'春江花月夜凉如水'):
+                #     gen_poetry = "".join(generate(poetry_model, word, index2word, word2index))
+                #     gen_poetries.append(gen_poetry)
+        torch.save(poetry_model.state_dict(), '%s_%s.pth' % (conf.model_checkpoint_path, epoch))
 
 
 
@@ -145,6 +152,7 @@ def gen(**kwargs):
     gen_poetry = generate
     result = gen_poetry(model, start_words, index2word, word2index, prefix_words)
     print(''.join(result))
+
 
 if __name__ == "__main__":
     train()
