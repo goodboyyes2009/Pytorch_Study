@@ -10,20 +10,21 @@ class TextRNN(nn.Module):
     def __init__(self):
         super(TextRNN, self).__init__()
 
-        self.rnn = nn.RNN(input_size=vocab_size, hidden_size=n_hidden)
+        # input_size: input_x的特征个数, 可以理解为embedding_dim
+        self.rnn = nn.RNN(input_size=vocab_size, hidden_size=n_hidden, num_layers=1)
 
         self.W = nn.Linear(in_features=n_hidden, out_features=vocab_size, bias=False)
 
         self.b = nn.Parameter(torch.ones([vocab_size]))
 
     def forward(self, input_x, hidden):
-
-        input_x = input_x.transpose(0, 1)  # X :[n_step, batch_size, n_classes]
+        input_x = input_x.transpose(0, 1)  # X :[sequence_len, batch_size, input_size]
 
         outputs, hidden = self.rnn(input_x, hidden)
-        # output: [n_step, batch_size, num_directions(=1) * n_hidden]
+        # output: [sequence_len, batch_size, num_directions(=1) * n_hidden]
         # hidden: [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
-        outputs = outputs[-1]  # [batch_size, num_directions(=1) * n_hidden]
+        outputs = outputs[-1]  # [sequence_len, batch_size, num_directions(=1) * n_hidden]
+
         model = self.W(outputs) + self.b  # model: [batch_size, n_classes]
         return model
 
@@ -34,9 +35,8 @@ def make_batch():
 
     for sentence in sentences:
         word = sentence.split()
-        input = [word_dict[n] for n in word[:-1]]  # create (1, n-1) as input
-        target = word_dict[word[-1]]  # create (n) as target, We usually call this 'casual language model'
-
+        input = [word2index_dict[n] for n in word[:-1]]  # create (1, n-1) as input
+        target = word2index_dict[word[-1]]  # create (n) as target, We usually call this 'casual language model'
         # 构造输入的one-hot, input_batch: [word_num ,vocab_size]
 
         input_batch.append(np.eye(vocab_size)[input])
@@ -75,9 +75,10 @@ if __name__ == "__main__":
     sentences = ["i like dog", "i love coffee", "i hate milk"]
 
     word_list = " ".join(sentences).split()
+    # 使用set进行去重
     word_list = list(set(word_list))
-    word_dict = {w: i for i, w in enumerate(word_list)}
-    number_dict = {i: w for i, w in enumerate(word_list)}
+    word2index_dict = {w: i for i, w in enumerate(word_list)}
+    index2word_dict = {i: w for i, w in enumerate(word_list)}
 
     vocab_size = len(word_list)
 
@@ -94,11 +95,9 @@ if __name__ == "__main__":
     input_batch = torch.FloatTensor(input_batch)
     target_batch = torch.LongTensor(target_batch)
 
-
     print("model:{}".format(model))
 
     for name, param in model.named_parameters():
         print("name:{}, param:{}".format(name, param.shape))
-
 
     training_loop(n_epochs, optimizer, model, loss_fn, input_batch, target_batch)
