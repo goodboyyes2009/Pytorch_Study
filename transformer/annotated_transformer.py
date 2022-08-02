@@ -173,7 +173,7 @@ class DecoderLayer(nn.Module):
 
     def __init__(self, size, self_attention, src_attention, feed_forward, dropout):
         super(DecoderLayer, self).__init__()
-        self.size = self.size
+        self.size = size
         self.self_attention = self_attention
         self.src_attention = src_attention
         self.feed_forward = feed_forward
@@ -277,8 +277,9 @@ class PositionalEncoding(nn.Module):
 
         # Compute the positional encodings once in log space.
         pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model))
+        position = torch.arange(0, max_len).unsqueeze(1).float()
+        # div_term = torch.exp(torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model))
+        div_term = torch.exp((torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model)).float())
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0)
@@ -289,6 +290,61 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 
+def build_model(src_vocab, dest_vocab, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1):
+    """ Construct a model from hyperparameters."""
+    c = copy.deepcopy
+
+    attn = MultiHeadedAttention(h, d_model)
+    ff = PositionwiseFeedForward(d_model, d_ff, dropout)
+    position = PositionalEncoding(d_model, dropout)
+
+    model = EncoderDecoder(Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), N),
+                           Decoder(DecoderLayer(d_model, c(attn), c(attn), c(ff), dropout), N),
+                           nn.Sequential(Embeddings(d_model, src_vocab), c(position)),
+                           nn.Sequential(Embeddings(d_model, dest_vocab), c(position)),
+                           Generator(d_model, dest_vocab)
+                           )
+    # Initialize parameters
+    for p in model.parameters():
+        if p.dim() > 1:
+            nn.init.xavier_uniform_(p)
+    return model
+
+
+# Trainning
+
+class Batch(object):
+    " object for holding a batch of data with mask during training. "
+
+    def __init__(self, src, dest=None, pad=0):
+        self.src = src
+        self.src_mask = (src != pad).unsqueeze(-2)
+        if dest is None:
+            self.dest = dest[:, :, -1]
+            self.dest_y = dest[:, 1, :]
+            self.dest_mask = self.make_std_mask(self.dest, pad)
+            self.ntokens = (self.dest_y != pad).data.sum()
+
+    @staticmethod
+    def make_std_mask(dest, pad):
+        " Create a mask to hide padding and future words. "
+        dest_mask = (dest != pad).unsqueeze(-2)
+        dest_mask = dest_mask & Variable(subsequent_mask(dest.size(-1)).type_as(dest_mask.data))
+        return dest_mask
+
+
+# Training Loop
+
+def run_epoch(data_iter, model, loss_compute):
+    " Standard Training and Logging Function. "
+    pass
+
+
+
+
 if __name__ == "__main__":
     subsequent_ = subsequent_mask(4)
     print(subsequent_)
+
+    tmp_model = build_model(10, 10, 2)
+    print(tmp_model)
