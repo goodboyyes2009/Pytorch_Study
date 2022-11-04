@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import torch as t
 from matplotlib import pyplot as plt
-from IPython import display
 
 # 设置随机种子确保在不同的计算机上运行时下面的输出一致
 t.manual_seed(1000)
