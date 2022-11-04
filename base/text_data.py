@@ -2,7 +2,7 @@
 import torch
 
 # 加载《傲慢与偏见》英文小说， 下载地址: http://www.gutenberg.org/files/1342/1342-0.txt
-with open("../data/representation/1342-0.txt", 'r', encoding='utf-8') as f:
+with open("../data/ebook/Pride_and_Prejudice.txt", 'r', encoding='utf-8') as f:
     text = f.read()
 
     lines = text.split("\n")
